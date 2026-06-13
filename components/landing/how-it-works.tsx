@@ -15,16 +15,28 @@ export function HowItWorks() {
           <h2 className="heading-lg text-gradient-subtle mb-4">From idea to launch</h2>
           <p className="body-md">Three simple steps to turn your imagination into a live spatial experience.</p>
         </div>
-        <div className="grid gap-8 md:grid-cols-3">
-          {steps.map((step, idx) => (
-            <div key={step.title} className="flex flex-col items-center text-center p-6 rounded-xl border border-aether-border bg-aether-surface/30 hover:shadow-aether-lg transition-shadow">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-aether-accent text-aether-bg-elevated mb-4 text-xl font-bold">
-                {idx + 1}
+        <div className="relative mt-16">
+          {/* Connecting line for desktop */}
+          <div className="absolute left-[16.66%] right-[16.66%] top-6 hidden h-0.5 bg-gradient-to-r from-aether-accent via-aether-cyan to-aether-accent opacity-30 md:block" />
+          
+          <div className="grid gap-12 md:grid-cols-3 md:gap-8">
+            {steps.map((step, idx) => (
+              <div key={step.title} className="group relative flex flex-col items-center text-center">
+                {/* Step number with glow */}
+                <div className="relative mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-aether-bg-elevated border-2 border-aether-accent shadow-aether-glow-accent transition-transform duration-300 group-hover:scale-110">
+                  <span className="text-lg font-bold text-gradient">{idx + 1}</span>
+                  <div className="absolute inset-0 rounded-full bg-aether-accent/20 blur-md" />
+                </div>
+                
+                <h3 className="mb-3 text-xl font-semibold text-aether-text group-hover:text-aether-accent-light transition-colors">
+                  {step.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-aether-text-muted">
+                  {step.description}
+                </p>
               </div>
-              <h3 className="mb-2 text-base font-semibold text-aether-text">{step.title}</h3>
-              <p className="text-sm text-aether-text-muted">{step.description}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </Container>
     </section>

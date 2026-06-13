@@ -96,13 +96,15 @@ export function FAQ() {
                 </span>
               </button>
               <div
-                className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                  openIndex === idx ? "max-h-96 pb-5 opacity-100" : "max-h-0 opacity-0"
+                className={`grid transition-all duration-300 ease-in-out ${
+                  openIndex === idx ? "grid-rows-[1fr] pb-5 opacity-100" : "grid-rows-[0fr] opacity-0"
                 }`}
               >
-                <p className="text-sm leading-relaxed text-aether-text-muted">
-                  {faq.answer}
-                </p>
+                <div className="overflow-hidden">
+                  <p className="text-sm leading-relaxed text-aether-text-muted">
+                    {faq.answer}
+                  </p>
+                </div>
               </div>
             </div>
           ))}

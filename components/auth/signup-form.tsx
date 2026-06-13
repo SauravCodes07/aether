@@ -128,51 +128,51 @@ export function SignUpForm() {
 
         <div>
           <Label htmlFor="signup-password">Password</Label>
-          <div className="relative">
-            <Input
-              id="signup-password"
-              name="password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="new-password"
-              placeholder="At least 8 characters"
-              required
-              minLength={8}
-              disabled={isPending}
-              error={state.fieldErrors?.password}
-            />
-            <button
-              type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-aether-text-muted hover:text-aether-text transition-colors"
-              onClick={() => setShowPassword(!showPassword)}
-              aria-label={showPassword ? "Hide password" : "Show password"}
-            >
-              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-            </button>
-          </div>
+          <Input
+            id="signup-password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
+            required
+            minLength={8}
+            disabled={isPending}
+            error={state.fieldErrors?.password}
+            suffix={
+              <button
+                type="button"
+                className="flex items-center text-aether-text-muted hover:text-aether-text transition-colors"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            }
+          />
         </div>
 
         <div>
           <Label htmlFor="signup-confirmPassword">Confirm password</Label>
-          <div className="relative">
-            <Input
-              id="signup-confirmPassword"
-              name="confirmPassword"
-              type={showConfirmPassword ? "text" : "password"}
-              autoComplete="new-password"
-              placeholder="Repeat your password"
-              required
-              disabled={isPending}
-              error={state.fieldErrors?.confirmPassword}
-            />
-            <button
-              type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-aether-text-muted hover:text-aether-text transition-colors"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              aria-label={showConfirmPassword ? "Hide password" : "Show password"}
-            >
-              {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
-            </button>
-          </div>
+          <Input
+            id="signup-confirmPassword"
+            name="confirmPassword"
+            type={showConfirmPassword ? "text" : "password"}
+            autoComplete="new-password"
+            placeholder="Repeat your password"
+            required
+            disabled={isPending}
+            error={state.fieldErrors?.confirmPassword}
+            suffix={
+              <button
+                type="button"
+                className="flex items-center text-aether-text-muted hover:text-aether-text transition-colors"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+              >
+                {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            }
+          />
         </div>
 
         <Button type="submit" className="w-full" size="lg" disabled={isPending}>

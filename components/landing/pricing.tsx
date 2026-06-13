@@ -139,6 +139,74 @@ export function Pricing() {
             </div>
           ))}
         </div>
+
+        {/* Feature Comparison Table */}
+        <div className="mt-24 hidden md:block">
+          <div className="mx-auto mb-12 max-w-2xl text-center">
+            <h3 className="heading-md text-aether-text mb-4">Compare plans in detail</h3>
+            <p className="body-md">Find the perfect plan for your spatial computing needs.</p>
+          </div>
+          
+          <div className="overflow-hidden rounded-2xl border border-aether-border bg-aether-bg-elevated/50">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-aether-border bg-aether-surface/40">
+                  <th className="p-6 font-semibold text-aether-text w-1/4">Feature</th>
+                  <th className="p-6 font-semibold text-aether-text w-1/4 text-center">Free</th>
+                  <th className="p-6 font-semibold text-aether-accent-light w-1/4 text-center">Pro</th>
+                  <th className="p-6 font-semibold text-aether-text w-1/4 text-center">Enterprise</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-aether-border/50">
+                <tr className="bg-aether-surface/20">
+                  <td colSpan={4} className="p-4 font-medium text-aether-text-muted">Usage & Limits</td>
+                </tr>
+                <tr className="hover:bg-aether-surface/30 transition-colors">
+                  <td className="p-4 pl-6 text-aether-text-muted">Workspaces</td>
+                  <td className="p-4 text-center text-aether-text">1</td>
+                  <td className="p-4 text-center text-aether-text">Unlimited</td>
+                  <td className="p-4 text-center text-aether-text">Unlimited</td>
+                </tr>
+                <tr className="hover:bg-aether-surface/30 transition-colors">
+                  <td className="p-4 pl-6 text-aether-text-muted">Cloud Storage</td>
+                  <td className="p-4 text-center text-aether-text">1 GB</td>
+                  <td className="p-4 text-center text-aether-text">100 GB</td>
+                  <td className="p-4 text-center text-aether-text">Unlimited</td>
+                </tr>
+                <tr className="bg-aether-surface/20">
+                  <td colSpan={4} className="p-4 font-medium text-aether-text-muted">Spatial Editor</td>
+                </tr>
+                <tr className="hover:bg-aether-surface/30 transition-colors">
+                  <td className="p-4 pl-6 text-aether-text-muted">Real-time Collaboration</td>
+                  <td className="p-4 text-center text-aether-text-muted">-</td>
+                  <td className="p-4 text-center text-aether-text"><span className="text-aether-accent">✓</span></td>
+                  <td className="p-4 text-center text-aether-text"><span className="text-aether-accent">✓</span></td>
+                </tr>
+                <tr className="hover:bg-aether-surface/30 transition-colors">
+                  <td className="p-4 pl-6 text-aether-text-muted">Version History</td>
+                  <td className="p-4 text-center text-aether-text">7 days</td>
+                  <td className="p-4 text-center text-aether-text">Unlimited</td>
+                  <td className="p-4 text-center text-aether-text">Unlimited</td>
+                </tr>
+                <tr className="bg-aether-surface/20">
+                  <td colSpan={4} className="p-4 font-medium text-aether-text-muted">AI Features</td>
+                </tr>
+                <tr className="hover:bg-aether-surface/30 transition-colors">
+                  <td className="p-4 pl-6 text-aether-text-muted">Daily AI Generations</td>
+                  <td className="p-4 text-center text-aether-text">5</td>
+                  <td className="p-4 text-center text-aether-text">Unlimited</td>
+                  <td className="p-4 text-center text-aether-text">Unlimited</td>
+                </tr>
+                <tr className="hover:bg-aether-surface/30 transition-colors">
+                  <td className="p-4 pl-6 text-aether-text-muted">Custom AI Models</td>
+                  <td className="p-4 text-center text-aether-text-muted">-</td>
+                  <td className="p-4 text-center text-aether-text-muted">-</td>
+                  <td className="p-4 text-center text-aether-text"><span className="text-aether-accent">✓</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </Container>
     </section>
   );

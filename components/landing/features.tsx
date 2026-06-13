@@ -99,24 +99,27 @@ export function Features() {
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature) => (
-            <Card key={feature.title} hover>
-              <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg border border-aether-border bg-aether-bg-elevated">
-                <svg
-                  className="h-5 w-5 text-aether-accent"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  {feature.icon}
-                </svg>
+            <Card key={feature.title} hover className="group overflow-hidden relative transition-all duration-300 hover:-translate-y-1 hover:shadow-aether-glow-accent">
+              <div className="absolute inset-0 bg-gradient-to-br from-aether-accent/5 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              <div className="relative z-10">
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-aether-border bg-aether-bg-elevated transition-transform duration-300 group-hover:scale-110 group-hover:border-aether-accent/30 group-hover:bg-aether-accent/10">
+                  <svg
+                    className="h-6 w-6 text-aether-text-muted transition-colors duration-300 group-hover:text-aether-accent-light"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    {feature.icon}
+                  </svg>
+                </div>
+                <h3 className="mb-3 text-lg font-semibold text-aether-text group-hover:text-aether-accent-light transition-colors duration-300">
+                  {feature.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-aether-text-muted">
+                  {feature.description}
+                </p>
               </div>
-              <h3 className="mb-2 text-base font-semibold text-aether-text">
-                {feature.title}
-              </h3>
-              <p className="text-sm leading-relaxed text-aether-text-muted">
-                {feature.description}
-              </p>
             </Card>
           ))}
         </div>

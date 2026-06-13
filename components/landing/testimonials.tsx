@@ -1,4 +1,5 @@
 import { Container } from "@/components/ui/container";
+import Image from "next/image";
 
 const testimonials = [
   {
@@ -7,7 +8,7 @@ const testimonials = [
     name: "Sarah Chen",
     role: "VP of Engineering",
     company: "Nexus Labs",
-    avatar: "SC",
+    imageUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&h=150&q=80",
   },
   {
     quote:
@@ -15,7 +16,7 @@ const testimonials = [
     name: "Marcus Rivera",
     role: "Creative Director",
     company: "Void Studio",
-    avatar: "MR",
+    imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150&q=80",
   },
   {
     quote:
@@ -23,7 +24,7 @@ const testimonials = [
     name: "Aiko Tanaka",
     role: "CTO",
     company: "Horizon AI",
-    avatar: "AT",
+    imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&h=150&q=80",
   },
   {
     quote:
@@ -31,13 +32,13 @@ const testimonials = [
     name: "James O'Brien",
     role: "Lead Developer",
     company: "CloudForge",
-    avatar: "JO",
+    imageUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&h=150&q=80",
   },
 ];
 
 export function Testimonials() {
   return (
-    <section id="testimonials" className="section-padding border-t border-aether-border">
+    <section id="testimonials" className="section-padding border-t border-aether-border bg-aether-bg">
       <Container>
         <div className="mx-auto mb-16 max-w-2xl text-center">
           <p className="label-sm mb-4">Testimonials</p>
@@ -65,9 +66,13 @@ export function Testimonials() {
               </p>
 
               <div className="flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-aether-accent to-aether-cyan text-xs font-bold text-white">
-                  {testimonial.avatar}
-                </div>
+                <Image 
+                  src={testimonial.imageUrl} 
+                  alt={testimonial.name}
+                  width={40}
+                  height={40}
+                  className="h-10 w-10 rounded-full object-cover border border-aether-border bg-aether-surface shadow-sm"
+                />
                 <div>
                   <p className="text-sm font-semibold text-aether-text">
                     {testimonial.name}
