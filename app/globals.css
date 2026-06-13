@@ -1,26 +1,346 @@
 @import "tailwindcss";
+@import "../styles/tokens.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* ─── Tailwind Theme Bridge ─────────────────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  /* Colors — surfaces */
+  --color-aether-bg: var(--aether-bg);
+  --color-aether-bg-elevated: var(--aether-bg-elevated);
+  --color-aether-bg-overlay: var(--aether-bg-overlay);
+  --color-aether-surface: var(--aether-surface);
+  --color-aether-surface-hover: var(--aether-surface-hover);
+  --color-aether-surface-active: var(--aether-surface-active);
+  --color-aether-surface-raised: var(--aether-surface-raised);
+
+  /* Colors — borders */
+  --color-aether-border: var(--aether-border);
+  --color-aether-border-strong: var(--aether-border-strong);
+  --color-aether-border-focus: var(--aether-border-focus);
+  --color-aether-border-subtle: var(--aether-border-subtle);
+
+  /* Colors — text */
+  --color-aether-text: var(--aether-text);
+  --color-aether-text-muted: var(--aether-text-muted);
+  --color-aether-text-subtle: var(--aether-text-subtle);
+  --color-aether-text-inverse: var(--aether-text-inverse);
+  --color-aether-text-link: var(--aether-text-link);
+
+  /* Colors — brand */
+  --color-aether-accent: var(--aether-accent);
+  --color-aether-accent-light: var(--aether-accent-light);
+  --color-aether-accent-muted: var(--aether-accent-muted);
+  --color-aether-cyan: var(--aether-cyan);
+  --color-aether-cyan-light: var(--aether-cyan-light);
+
+  /* Colors — status */
+  --color-aether-success: var(--aether-success);
+  --color-aether-warning: var(--aether-warning);
+  --color-aether-error: var(--aether-error);
+  --color-aether-info: var(--aether-info);
+
+  /* Colors — module themes */
+  --color-aether-module-dashboard: var(--aether-module-dashboard);
+  --color-aether-module-dashboard-subtle: var(--aether-module-dashboard-subtle);
+  --color-aether-module-auth: var(--aether-module-auth);
+  --color-aether-module-auth-subtle: var(--aether-module-auth-subtle);
+  --color-aether-module-tracking: var(--aether-module-tracking);
+  --color-aether-module-tracking-subtle: var(--aether-module-tracking-subtle);
+  --color-aether-module-ai: var(--aether-module-ai);
+  --color-aether-module-ai-subtle: var(--aether-module-ai-subtle);
+  --color-aether-module-workspace: var(--aether-module-workspace);
+  --color-aether-module-workspace-subtle: var(--aether-module-workspace-subtle);
+
+  /* Fonts */
+  --font-sans: var(--font-inter);
   --font-mono: var(--font-geist-mono);
+
+  /* Border radius */
+  --radius-aether-xs: var(--aether-radius-xs);
+  --radius-aether-sm: var(--aether-radius-sm);
+  --radius-aether-md: var(--aether-radius-md);
+  --radius-aether-lg: var(--aether-radius-lg);
+  --radius-aether-xl: var(--aether-radius-xl);
+  --radius-aether-2xl: var(--aether-radius-2xl);
+  --radius-aether-full: var(--aether-radius-full);
+
+  /* Shadows */
+  --shadow-aether-xs: var(--aether-shadow-xs);
+  --shadow-aether-sm: var(--aether-shadow-sm);
+  --shadow-aether-md: var(--aether-shadow-md);
+  --shadow-aether-lg: var(--aether-shadow-lg);
+  --shadow-aether-xl: var(--aether-shadow-xl);
+  --shadow-aether-inner: var(--aether-shadow-inner);
+  --shadow-aether-navbar: var(--aether-shadow-navbar);
+  --shadow-aether-glow-accent: var(--aether-shadow-glow-accent);
+  --shadow-aether-glow-cyan: var(--aether-shadow-glow-cyan);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── Base ──────────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--aether-bg);
+  color: var(--aether-text);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: var(--aether-text-base);
+  line-height: var(--aether-leading-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background-color: var(--aether-selection-bg);
+  color: var(--aether-selection-text);
+}
+
+/* ─── Utility Classes ───────────────────────────────────────────── */
+@layer utilities {
+  /* Typography */
+  .heading-xl {
+    font-size: var(--aether-text-4xl);
+    font-weight: var(--aether-font-weight-semibold);
+    letter-spacing: var(--aether-tracking-tight);
+    line-height: var(--aether-leading-tight);
+  }
+
+  .heading-lg {
+    font-size: var(--aether-text-2xl);
+    font-weight: var(--aether-font-weight-semibold);
+    letter-spacing: var(--aether-tracking-tight);
+    line-height: var(--aether-leading-snug);
+  }
+
+  .heading-md {
+    font-size: var(--aether-text-xl);
+    font-weight: var(--aether-font-weight-semibold);
+    letter-spacing: var(--aether-tracking-tight);
+    line-height: var(--aether-leading-snug);
+  }
+
+  .heading-sm {
+    font-size: var(--aether-text-base);
+    font-weight: var(--aether-font-weight-semibold);
+    letter-spacing: var(--aether-tracking-tight);
+    line-height: var(--aether-leading-snug);
+  }
+
+  .body-lg {
+    font-size: var(--aether-text-lg);
+    line-height: var(--aether-leading-relaxed);
+    color: var(--aether-text-muted);
+  }
+
+  .body-md {
+    font-size: var(--aether-text-base);
+    line-height: var(--aether-leading-relaxed);
+    color: var(--aether-text-muted);
+  }
+
+  .body-sm {
+    font-size: var(--aether-text-sm);
+    line-height: var(--aether-leading-relaxed);
+    color: var(--aether-text-muted);
+  }
+
+  .label-sm {
+    font-size: var(--aether-text-xs);
+    font-weight: var(--aether-font-weight-medium);
+    letter-spacing: var(--aether-tracking-widest);
+    text-transform: uppercase;
+    color: var(--aether-text-subtle);
+  }
+
+  .caption {
+    font-size: var(--aether-text-xs);
+    line-height: var(--aether-leading-normal);
+    color: var(--aether-text-subtle);
+  }
+
+  .code-sm {
+    font-family: var(--font-geist-mono), ui-monospace, monospace;
+    font-size: var(--aether-text-sm);
+    line-height: var(--aether-leading-normal);
+  }
+
+  @media (min-width: 640px) {
+    .heading-xl {
+      font-size: var(--aether-text-5xl);
+    }
+
+    .heading-lg {
+      font-size: var(--aether-text-3xl);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .heading-xl {
+      font-size: var(--aether-text-6xl);
+    }
+  }
+
+  /* Gradients */
+  .text-gradient {
+    background: var(--aether-gradient-brand);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-subtle {
+    background: var(--aether-gradient-subtle);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glassmorphism */
+  .glass {
+    background: var(--aether-glass-bg);
+    backdrop-filter: blur(var(--aether-glass-blur)) saturate(var(--aether-glass-saturate));
+    -webkit-backdrop-filter: blur(var(--aether-glass-blur)) saturate(var(--aether-glass-saturate));
+    border: 1px solid var(--aether-border);
+  }
+
+  .glass-strong {
+    background: var(--aether-glass-bg-strong);
+    backdrop-filter: blur(var(--aether-glass-blur-strong)) saturate(var(--aether-glass-saturate-strong));
+    -webkit-backdrop-filter: blur(var(--aether-glass-blur-strong)) saturate(var(--aether-glass-saturate-strong));
+    border: 1px solid var(--aether-border-strong);
+  }
+
+  .glass-subtle {
+    background: var(--aether-glass-bg-subtle);
+    backdrop-filter: blur(var(--aether-glass-blur-subtle)) saturate(var(--aether-glass-saturate));
+    -webkit-backdrop-filter: blur(var(--aether-glass-blur-subtle)) saturate(var(--aether-glass-saturate));
+    border: 1px solid var(--aether-border-subtle);
+  }
+
+  .glass-panel {
+    background: var(--aether-glass-bg-panel);
+    backdrop-filter: blur(var(--aether-glass-blur)) saturate(var(--aether-glass-saturate));
+    -webkit-backdrop-filter: blur(var(--aether-glass-blur)) saturate(var(--aether-glass-saturate));
+    border: 1px solid var(--aether-border);
+    box-shadow: var(--aether-shadow-inner);
+  }
+
+  .glass-floating {
+    background: var(--aether-glass-bg-floating);
+    backdrop-filter: blur(var(--aether-glass-blur-strong)) saturate(var(--aether-glass-saturate-strong));
+    -webkit-backdrop-filter: blur(var(--aether-glass-blur-strong)) saturate(var(--aether-glass-saturate-strong));
+    border: 1px solid var(--aether-border-strong);
+    box-shadow: var(--aether-shadow-lg);
+  }
+
+  /* Glow shadows */
+  .glow-accent {
+    box-shadow: var(--aether-shadow-glow-accent);
+  }
+
+  .glow-cyan {
+    box-shadow: var(--aether-shadow-glow-cyan);
+  }
+
+  .glow-ai {
+    box-shadow: var(--aether-shadow-glow-ai);
+  }
+
+  .glow-tracking {
+    box-shadow: var(--aether-shadow-glow-tracking);
+  }
+
+  /* Borders */
+  .border-gradient {
+    border: 1px solid transparent;
+    background:
+      linear-gradient(var(--aether-surface), var(--aether-surface)) padding-box,
+      var(--aether-gradient-border) border-box;
+  }
+
+  /* Layout */
+  .section-padding {
+    padding-inline: var(--aether-space-5);
+    padding-block: var(--aether-space-20);
+  }
+
+  @media (min-width: 640px) {
+    .section-padding {
+      padding-inline: var(--aether-space-8);
+      padding-block: var(--aether-space-28);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .section-padding {
+      padding-inline: var(--aether-space-12);
+      padding-block: var(--aether-space-32);
+    }
+  }
+
+  /* Focus ring (for custom interactive elements) */
+  .focus-aether {
+    outline: none;
+  }
+
+  .focus-aether:focus-visible {
+    outline: 2px solid var(--aether-ring);
+    outline-offset: 2px;
+  }
+
+  /* Module accent helpers */
+  .module-dashboard {
+    color: var(--aether-module-dashboard);
+  }
+
+  .module-tracking {
+    color: var(--aether-module-tracking);
+  }
+
+  .module-ai {
+    color: var(--aether-module-ai);
+  }
+
+  .module-workspace {
+    color: var(--aether-module-workspace);
+  }
+}
+
+/* ─── Ambient Background ────────────────────────────────────────── */
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ambient-bg::before {
+  content: "";
+  position: absolute;
+  top: -20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 60%;
+  background: var(--aether-gradient-ambient-accent);
+}
+
+.ambient-bg::after {
+  content: "";
+  position: absolute;
+  bottom: -10%;
+  right: -10%;
+  width: 50%;
+  height: 50%;
+  background: var(--aether-gradient-ambient-cyan);
+}
+
+/* ─── Grid Pattern ──────────────────────────────────────────────── */
+.grid-pattern {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 20%, transparent 80%);
 }

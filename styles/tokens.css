@@ -1,0 +1,218 @@
+/* ─── Aether Design Tokens ─────────────────────────────────────────
+ * Single source of truth for the design system.
+ * Consumed by globals.css (@theme) and lib/design-tokens.ts.
+ * ─────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* ── Primitives ─────────────────────────────────────────────────── */
+  --aether-white: #ffffff;
+  --aether-black: #000000;
+
+  --aether-neutral-950: #070708;
+  --aether-neutral-900: #0e0e10;
+  --aether-neutral-850: #111113;
+  --aether-neutral-800: #141416;
+  --aether-neutral-750: #1a1a1e;
+  --aether-neutral-700: #27272a;
+  --aether-neutral-600: #3f3f46;
+  --aether-neutral-500: #71717a;
+  --aether-neutral-400: #a1a1aa;
+  --aether-neutral-300: #d4d4d8;
+  --aether-neutral-100: #f4f4f5;
+
+  --aether-violet-500: #8b5cf6;
+  --aether-violet-400: #a78bfa;
+  --aether-violet-300: #c4b5fd;
+  --aether-cyan-400: #22d3ee;
+  --aether-cyan-300: #67e8f9;
+
+  --aether-green-500: #22c55e;
+  --aether-amber-500: #f59e0b;
+  --aether-red-500: #ef4444;
+  --aether-blue-500: #3b82f6;
+
+  /* ── Semantic: Surfaces ───────────────────────────────────────── */
+  --aether-bg: var(--aether-neutral-950);
+  --aether-bg-elevated: var(--aether-neutral-900);
+  --aether-bg-overlay: rgba(7, 7, 8, 0.8);
+  --aether-surface: var(--aether-neutral-800);
+  --aether-surface-hover: var(--aether-neutral-750);
+  --aether-surface-active: var(--aether-neutral-700);
+  --aether-surface-raised: var(--aether-neutral-850);
+
+  /* ── Semantic: Borders ──────────────────────────────────────────── */
+  --aether-border: rgba(255, 255, 255, 0.06);
+  --aether-border-strong: rgba(255, 255, 255, 0.12);
+  --aether-border-focus: rgba(139, 92, 246, 0.5);
+  --aether-border-subtle: rgba(255, 255, 255, 0.04);
+
+  /* ── Semantic: Text ───────────────────────────────────────────── */
+  --aether-text: var(--aether-neutral-100);
+  --aether-text-muted: var(--aether-neutral-400);
+  --aether-text-subtle: var(--aether-neutral-500);
+  --aether-text-inverse: var(--aether-neutral-950);
+  --aether-text-link: var(--aether-violet-400);
+  --aether-text-link-hover: var(--aether-violet-300);
+
+  /* ── Semantic: Brand Accents ───────────────────────────────────── */
+  --aether-accent: var(--aether-violet-500);
+  --aether-accent-light: var(--aether-violet-400);
+  --aether-accent-muted: var(--aether-violet-300);
+  --aether-accent-glow: rgba(139, 92, 246, 0.35);
+  --aether-accent-subtle: rgba(139, 92, 246, 0.1);
+
+  --aether-cyan: var(--aether-cyan-400);
+  --aether-cyan-light: var(--aether-cyan-300);
+  --aether-cyan-glow: rgba(34, 211, 238, 0.2);
+  --aether-cyan-subtle: rgba(34, 211, 238, 0.1);
+
+  /* ── Semantic: Status ─────────────────────────────────────────── */
+  --aether-success: var(--aether-green-500);
+  --aether-success-subtle: rgba(34, 197, 94, 0.1);
+  --aether-warning: var(--aether-amber-500);
+  --aether-warning-subtle: rgba(245, 158, 11, 0.1);
+  --aether-error: var(--aether-red-500);
+  --aether-error-subtle: rgba(239, 68, 68, 0.1);
+  --aether-info: var(--aether-blue-500);
+  --aether-info-subtle: rgba(59, 130, 246, 0.1);
+
+  /* ── Module Themes (future phases) ────────────────────────────── */
+  --aether-module-dashboard: var(--aether-violet-500);
+  --aether-module-dashboard-subtle: var(--aether-accent-subtle);
+  --aether-module-auth: var(--aether-neutral-400);
+  --aether-module-auth-subtle: rgba(161, 161, 170, 0.1);
+  --aether-module-tracking: var(--aether-cyan-400);
+  --aether-module-tracking-subtle: var(--aether-cyan-subtle);
+  --aether-module-ai: var(--aether-violet-400);
+  --aether-module-ai-subtle: var(--aether-accent-subtle);
+  --aether-module-workspace: var(--aether-violet-500);
+  --aether-module-workspace-subtle: rgba(139, 92, 246, 0.08);
+
+  /* ── Typography Scale ─────────────────────────────────────────── */
+  --aether-text-xs: 0.75rem;
+  --aether-text-sm: 0.875rem;
+  --aether-text-base: 1rem;
+  --aether-text-lg: 1.125rem;
+  --aether-text-xl: 1.25rem;
+  --aether-text-2xl: 1.5rem;
+  --aether-text-3xl: 1.875rem;
+  --aether-text-4xl: 2.25rem;
+  --aether-text-5xl: 3rem;
+  --aether-text-6xl: 3.75rem;
+
+  --aether-leading-tight: 1.08;
+  --aether-leading-snug: 1.25;
+  --aether-leading-normal: 1.5;
+  --aether-leading-relaxed: 1.625;
+
+  --aether-tracking-tight: -0.025em;
+  --aether-tracking-normal: 0;
+  --aether-tracking-wide: 0.025em;
+  --aether-tracking-widest: 0.1em;
+
+  --aether-font-weight-normal: 400;
+  --aether-font-weight-medium: 500;
+  --aether-font-weight-semibold: 600;
+
+  /* ── Spacing Scale ────────────────────────────────────────────── */
+  --aether-space-1: 0.25rem;
+  --aether-space-2: 0.5rem;
+  --aether-space-3: 0.75rem;
+  --aether-space-4: 1rem;
+  --aether-space-5: 1.25rem;
+  --aether-space-6: 1.5rem;
+  --aether-space-8: 2rem;
+  --aether-space-10: 2.5rem;
+  --aether-space-12: 3rem;
+  --aether-space-16: 4rem;
+  --aether-space-20: 5rem;
+  --aether-space-28: 7rem;
+  --aether-space-32: 8rem;
+
+  /* ── Border Radius Scale ──────────────────────────────────────── */
+  --aether-radius-xs: 0.25rem;
+  --aether-radius-sm: 0.5rem;
+  --aether-radius-md: 0.75rem;
+  --aether-radius-lg: 1rem;
+  --aether-radius-xl: 1.25rem;
+  --aether-radius-2xl: 1.5rem;
+  --aether-radius-full: 9999px;
+
+  /* ── Shadow / Elevation Scale ─────────────────────────────────── */
+  --aether-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --aether-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --aether-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --aether-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --aether-shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.5);
+  --aether-shadow-inner: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --aether-shadow-navbar: 0 8px 32px rgba(0, 0, 0, 0.2);
+  --aether-shadow-glow-accent:
+    0 0 40px var(--aether-accent-glow), 0 0 80px rgba(139, 92, 246, 0.1);
+  --aether-shadow-glow-cyan:
+    0 0 30px var(--aether-cyan-glow), 0 0 60px rgba(34, 211, 238, 0.08);
+  --aether-shadow-glow-ai: var(--aether-shadow-glow-accent);
+  --aether-shadow-glow-tracking: var(--aether-shadow-glow-cyan);
+
+  /* ── Glassmorphism ────────────────────────────────────────────── */
+  --aether-glass-bg: rgba(14, 14, 16, 0.72);
+  --aether-glass-bg-strong: rgba(20, 20, 22, 0.85);
+  --aether-glass-bg-subtle: rgba(14, 14, 16, 0.45);
+  --aether-glass-bg-panel: rgba(20, 20, 22, 0.6);
+  --aether-glass-bg-floating: rgba(24, 24, 28, 0.78);
+  --aether-glass-blur: 20px;
+  --aether-glass-blur-strong: 24px;
+  --aether-glass-blur-subtle: 12px;
+  --aether-glass-saturate: 180%;
+  --aether-glass-saturate-strong: 200%;
+
+  /* ── Motion ───────────────────────────────────────────────────── */
+  --aether-duration-fast: 150ms;
+  --aether-duration-normal: 200ms;
+  --aether-duration-slow: 300ms;
+  --aether-ease-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --aether-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Z-Index Scale ────────────────────────────────────────────── */
+  --aether-z-base: 0;
+  --aether-z-elevated: 10;
+  --aether-z-sticky: 20;
+  --aether-z-navbar: 50;
+  --aether-z-overlay: 100;
+  --aether-z-modal: 200;
+  --aether-z-toast: 300;
+  --aether-z-tooltip: 400;
+
+  /* ── Focus & Selection ────────────────────────────────────────── */
+  --aether-ring: var(--aether-border-focus);
+  --aether-ring-offset: var(--aether-bg);
+  --aether-selection-bg: rgba(139, 92, 246, 0.3);
+  --aether-selection-text: var(--aether-text);
+
+  /* ── Gradients ────────────────────────────────────────────────── */
+  --aether-gradient-brand: linear-gradient(
+    135deg,
+    var(--aether-white) 0%,
+    var(--aether-violet-300) 45%,
+    var(--aether-cyan-400) 100%
+  );
+  --aether-gradient-subtle: linear-gradient(
+    180deg,
+    var(--aether-neutral-100) 0%,
+    var(--aether-neutral-400) 100%
+  );
+  --aether-gradient-border: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.4),
+    rgba(34, 211, 238, 0.2)
+  );
+  --aether-gradient-ambient-accent: radial-gradient(
+    ellipse at center,
+    rgba(139, 92, 246, 0.12) 0%,
+    transparent 70%
+  );
+  --aether-gradient-ambient-cyan: radial-gradient(
+    ellipse at center,
+    rgba(34, 211, 238, 0.06) 0%,
+    transparent 70%
+  );
+}
