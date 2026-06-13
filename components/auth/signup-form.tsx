@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import Link from "next/link";
 import { signUpAction } from "@/lib/auth/actions";
 import { authRoutes } from "@/config/auth";
 import { Alert } from "@/components/ui/alert";
@@ -15,7 +16,8 @@ export function SignUpForm() {
     signUpAction,
     initialAuthActionState,
   );
-  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [oauthPending, setOauthPending] = useState(false);
 
@@ -44,6 +46,20 @@ export function SignUpForm() {
 
   const isPending = pending || oauthPending;
 
+  const EyeIcon = () => (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+
+  const EyeOffIcon = () => (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  );
+
   if (state.success && state.message) {
     return (
       <div className="space-y-6">
@@ -63,7 +79,7 @@ export function SignUpForm() {
       <Button
         type="button"
         variant="secondary"
-        className="w-full flex items-center justify-center gap-3 border border-aether-border bg-aether-surface/40 hover:bg-aether-surface"
+        className="w-full flex items-center justify-center gap-3 border border-aether-border bg-aether-surface/40 hover:bg-aether-surface transition-colors"
         onClick={handleGoogleSignIn}
         disabled={isPending}
       >
@@ -97,9 +113,9 @@ export function SignUpForm() {
 
       <form action={formAction} className="space-y-4">
         <div>
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="signup-email">Email</Label>
           <Input
-            id="email"
+            id="signup-email"
             name="email"
             type="email"
             autoComplete="email"
@@ -111,10 +127,10 @@ export function SignUpForm() {
         </div>
 
         <div>
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="signup-password">Password</Label>
           <div className="relative">
             <Input
-              id="password"
+              id="signup-password"
               name="password"
               type={showPassword ? "text" : "password"}
               autoComplete="new-password"
@@ -126,37 +142,53 @@ export function SignUpForm() {
             />
             <button
               type="button"
-              className="absolute inset-y-0 right-0 flex items-center px-3 text-aether-text-muted"
+              className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-aether-text-muted hover:text-aether-text transition-colors"
               onClick={() => setShowPassword(!showPassword)}
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              {showPassword ? (
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"/></svg>
-              ) : (
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              )}
+              {showPassword ? <EyeOffIcon /> : <EyeIcon />}
             </button>
           </div>
         </div>
 
         <div>
-          <Label htmlFor="confirmPassword">Confirm password</Label>
-          <Input
-            id="confirmPassword"
-            name="confirmPassword"
-            type="password"
-            autoComplete="new-password"
-            placeholder="Repeat your password"
-            required
-            disabled={isPending}
-            error={state.fieldErrors?.confirmPassword}
-          />
+          <Label htmlFor="signup-confirmPassword">Confirm password</Label>
+          <div className="relative">
+            <Input
+              id="signup-confirmPassword"
+              name="confirmPassword"
+              type={showConfirmPassword ? "text" : "password"}
+              autoComplete="new-password"
+              placeholder="Repeat your password"
+              required
+              disabled={isPending}
+              error={state.fieldErrors?.confirmPassword}
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center text-aether-text-muted hover:text-aether-text transition-colors"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+            >
+              {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
+            </button>
+          </div>
         </div>
 
         <Button type="submit" className="w-full" size="lg" disabled={isPending}>
           {pending ? "Creating account…" : "Create account"}
         </Button>
       </form>
+
+      <p className="text-center text-sm text-aether-text-muted">
+        Already have an account?{" "}
+        <Link
+          href={authRoutes.login}
+          className="font-medium text-aether-text-link hover:text-aether-accent-light transition-colors"
+        >
+          Sign in
+        </Link>
+      </p>
     </div>
   );
 }

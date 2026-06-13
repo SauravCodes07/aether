@@ -3,54 +3,80 @@ import { Container } from "@/components/ui/container";
 
 const features = [
   {
-    title: "Spatial Canvas",
+    title: "AI Assistant",
     description:
-      "Design immersive 3D environments with an intuitive spatial editor powered by real-time rendering.",
+      "Co-create 3D models, textures, and spatial layouts with natural language prompts powered by OpenAI and Gemini.",
     icon: (
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={1.5}
-        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"
+        d="M9.813 15.904L9 21l-.813-5.096a.4.4 0 00-.331-.331L2.76 14.76a.4.4 0 000-.753l5.096-.813a.4.4 0 00.331-.331L9 7.76a.4.4 0 00.753 0l.813 5.096a.4.4 0 00.331.331l5.096.813a.4.4 0 000 .753l-5.096.813a.4.4 0 00-.331.331zM19 3v4M21 5h-4"
       />
     ),
   },
   {
-    title: "AI Co-Creation",
+    title: "Spatial Engine",
     description:
-      "Generate models, textures, and layouts with multi-model AI — OpenAI and Gemini working in harmony.",
+      "A high-performance real-time 3D rendering engine built on WebGL, delivering responsive, fluid interactions.",
     icon: (
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={1.5}
-        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+        d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9"
       />
     ),
   },
   {
-    title: "Gesture Control",
+    title: "Team Collaboration",
     description:
-      "Interact naturally with hand tracking and pose estimation via MediaPipe for hands-free spatial input.",
+      "Design spatial experiences with your team in real time. Work side-by-side with multiplayer cursors and conflict-free editing.",
     icon: (
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={1.5}
-        d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11"
+        d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z"
+      />
+    ),
+  },
+  {
+    title: "Cloud Rendering",
+    description:
+      "Compile and compile complex scenes instantly in the cloud, utilizing cloud servers and cutting-edge GPU compute.",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"
+      />
+    ),
+  },
+  {
+    title: "3D Workspace",
+    description:
+      "A complete workspace including a node editor, cameras, layouts, gesture inputs, and real-time inspector.",
+    icon: (
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25"
       />
     ),
   },
   {
     title: "Real-time Sync",
     description:
-      "Collaborate with your team in real time. Auth, storage, and live updates powered by Supabase.",
+      "Instant database and asset sync backed by Supabase. View updates across all devices with zero latency.",
     icon: (
       <path
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeWidth={1.5}
-        d="M13 10V3L4 14h7v7l9-11h-7z"
+        d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
       />
     ),
   },
@@ -71,7 +97,7 @@ export function Features() {
           </p>
         </div>
 
-        <div className="grid gap-6 sm:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature) => (
             <Card key={feature.title} hover>
               <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-lg border border-aether-border bg-aether-bg-elevated">

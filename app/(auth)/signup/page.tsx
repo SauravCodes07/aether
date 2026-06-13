@@ -5,7 +5,6 @@ import type { Metadata } from "next";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { SignUpForm } from "@/components/auth/signup-form";
 import { requireGuest } from "@/lib/auth/guards";
-import { authRoutes } from "@/config/auth";
 
 export const metadata: Metadata = {
   title: "Create account",

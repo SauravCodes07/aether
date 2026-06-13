@@ -4,17 +4,18 @@ import { Logo } from "@/components/ui/logo";
 
 const footerGroups = [
   { title: "Product", links: siteConfig.footer.product },
+  { title: "Resources", links: siteConfig.footer.resources },
   { title: "Company", links: siteConfig.footer.company },
   { title: "Legal", links: siteConfig.footer.legal },
 ];
 
 export function Footer() {
   return (
-    <footer className="border-t border-aether-border bg-aether-bg-elevated">
+    <footer className="border-t border-aether-border bg-aether-bg-elevated/50 backdrop-blur-md">
       <Container className="py-16">
-        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-5">
           <div className="sm:col-span-2 lg:col-span-1">
-            <Logo />
+            <Logo className="h-8 glow-purple" />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-aether-text-muted">
               {siteConfig.description}
             </p>

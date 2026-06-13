@@ -15,7 +15,7 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
 
       <Container className="relative z-10 w-full max-w-lg">
         <div className="mb-8 flex justify-center">
-          <Logo href={null} className="h-16" />
+          <Logo href={null} className="h-16 glow-purple" />
         </div>
 
         <div className="glass-strong rounded-aether-2xl p-10 shadow-aether-lg sm:p-12">
