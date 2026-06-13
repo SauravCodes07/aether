@@ -27,16 +27,15 @@ const SUPABASE_ANON_KEY = "NEXT_PUBLIC_SUPABASE_ANON_KEY";
 const SUPABASE_PUBLISHABLE_KEY = "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY";
 const SUPABASE_SERVICE_ROLE_KEY = "SUPABASE_SERVICE_ROLE_KEY";
 
-function readEnv(name: string): string | undefined {
-  const value = process.env[name];
+function readEnv(value: string | undefined): string | undefined {
   return value && value.trim().length > 0 ? value.trim() : undefined;
 }
 
 /** Returns true when the minimum public Supabase env vars are present. */
 export function isSupabaseConfigured(): boolean {
-  const url = readEnv(SUPABASE_URL_KEY);
+  const url = readEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const key =
-    readEnv(SUPABASE_ANON_KEY) ?? readEnv(SUPABASE_PUBLISHABLE_KEY);
+    readEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ?? readEnv(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
   return Boolean(url && key);
 }
 
@@ -45,9 +44,9 @@ export function isSupabaseConfigured(): boolean {
  * Accepts legacy anon key or new publishable key naming.
  */
 export function getSupabasePublicEnv(): SupabasePublicEnv {
-  const url = readEnv(SUPABASE_URL_KEY);
+  const url = readEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
   const anonKey =
-    readEnv(SUPABASE_ANON_KEY) ?? readEnv(SUPABASE_PUBLISHABLE_KEY);
+    readEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ?? readEnv(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
 
   if (!url) {
     throw new EnvValidationError(
@@ -72,7 +71,7 @@ export function getSupabasePublicEnv(): SupabasePublicEnv {
  */
 export function getSupabaseServerEnv(): SupabaseServerEnv {
   const publicEnv = getSupabasePublicEnv();
-  const serviceRoleKey = readEnv(SUPABASE_SERVICE_ROLE_KEY);
+  const serviceRoleKey = readEnv(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   return {
     ...publicEnv,
