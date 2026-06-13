@@ -13,12 +13,12 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
     <section className="relative flex min-h-[calc(100vh-4rem)] items-center pt-24 pb-16">
       <div className="grid-pattern absolute inset-0 opacity-40" aria-hidden="true" />
 
-      <Container className="relative z-10 w-full max-w-md">
+      <Container className="relative z-10 w-full max-w-lg">
         <div className="mb-8 flex justify-center">
-          <Logo href={null} className="h-12" />
+          <Logo href={null} className="h-16" />
         </div>
 
-        <div className="glass-strong rounded-aether-2xl p-8 shadow-aether-lg sm:p-10">
+        <div className="glass-strong rounded-aether-2xl p-10 shadow-aether-lg sm:p-12">
           <div className="mb-8 text-center">
             <h1 className="heading-md text-gradient-subtle mb-2">{title}</h1>
             <p className="body-sm">{subtitle}</p>

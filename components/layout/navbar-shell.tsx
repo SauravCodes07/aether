@@ -37,7 +37,7 @@ export function NavbarShell() {
       )}
     >
       <Container as="nav" className="flex h-16 items-center justify-between">
-        <Logo />
+        <Logo className="h-9 md:h-12 glow-purple" />
 
         <ul className="hidden items-center gap-8 md:flex">
           {siteConfig.nav.map((item) => (

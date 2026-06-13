@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { initialAuthActionState } from "@/types/auth";
 import { createClient } from "@/lib/supabase/client";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
 
 type LoginFormProps = {
   redirectTo?: string;
@@ -20,6 +21,7 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
   );
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [oauthPending, setOauthPending] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -54,7 +56,7 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
       <Button
         type="button"
         variant="secondary"
-        className="w-full flex items-center justify-center gap-3 border border-aether-border bg-aether-surface/40 hover:bg-aether-surface"
+        className="w-full flex items-center justify-center gap-3 border border-aether-border bg-aether-surface/40 hover:bg-aether-surface transition-colors"
         onClick={handleGoogleSignIn}
         disabled={isPending}
       >
@@ -110,16 +112,43 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
           <Input
             id="password"
             name="password"
-            type="password"
+            type={showPassword ? "text" : "password"}
             autoComplete="current-password"
             placeholder="••••••••"
             required
             disabled={isPending}
             error={state.fieldErrors?.password}
+            // Toggle visibility
+
           />
+          <button
+            type="button"
+            className="absolute inset-y-0 right-3 flex items-center text-aether-text-muted"
+            className="absolute right-3 top-8 flex items-center text-aether-text-muted"
+            onClick={() => setShowPassword(!showPassword)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            {showPassword ? (
+              <EyeSlashIcon className="h-4 w-4" />
+            ) : (
+                <EyeIcon className="h-4 w-4" />
+              )}
+          </button>
         </div>
 
-        <Button type="submit" className="w-full" size="lg" disabled={isPending}>
+        <div className="flex items-center justify-between">
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-aether-border text-aether-accent focus:ring-aether-ring"
+              name="remember"
+            />
+            <span className="text-sm text-aether-text-muted">Remember me</span>
+          </label>
+          <Link href="/auth/reset" className="text-sm text-aether-text-link hover:underline">
+            Forgot password?
+          </Link>
+        </div>
           {pending ? "Signing in…" : "Sign in"}
         </Button>
       </form>

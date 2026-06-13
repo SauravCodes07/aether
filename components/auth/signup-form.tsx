@@ -15,6 +15,7 @@ export function SignUpForm() {
     signUpAction,
     initialAuthActionState,
   );
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [oauthError, setOauthError] = useState<string | null>(null);
   const [oauthPending, setOauthPending] = useState(false);
 
@@ -111,17 +112,31 @@ export function SignUpForm() {
 
         <div>
           <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            placeholder="At least 8 characters"
-            required
-            minLength={8}
-            disabled={isPending}
-            error={state.fieldErrors?.password}
-          />
+          <div className="relative">
+            <Input
+              id="password"
+              name="password"
+              type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
+              placeholder="At least 8 characters"
+              required
+              minLength={8}
+              disabled={isPending}
+              error={state.fieldErrors?.password}
+            />
+            <button
+              type="button"
+              className="absolute inset-y-0 right-0 flex items-center px-3 text-aether-text-muted"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? (
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              ) : (
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              )}
+            </button>
+          </div>
         </div>
 
         <div>
