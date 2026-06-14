@@ -28,7 +28,7 @@ export function MagicLinkForm() {
           </div>
         </Alert>
         <p className="text-center text-sm text-aether-text-muted">
-          Didn't receive the email? Check your spam folder, or{" "}
+          Didn&apos;t receive the email? Check your spam folder, or{" "}
           <button
             type="button"
             onClick={() => window.location.reload()}
