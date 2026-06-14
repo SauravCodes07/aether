@@ -237,6 +237,34 @@ export const MOBILE_NAV_ITEM_VARIANTS = {
 
 export const NAV_ACTIVE_LINE_TRANSITION = SPRING_PRESETS.navbar;
 
+/* ─── Nav Hover Pill / Indicator ──────────────────────────────────── */
+
+/**
+ * Underline that slides in on hover and snaps to active state.
+ * Use via AnimatePresence + layoutId on the underline element.
+ */
+export const NAV_HOVER_INDICATOR_VARIANTS = {
+  hidden: { opacity: 0, scaleX: 0 },
+  visible: {
+    opacity: 1,
+    scaleX: 1,
+    transition: SPRING_PRESETS.snappy,
+  },
+};
+
+/* ─── Nav Link Hover ──────────────────────────────────────────────── */
+
+export const NAV_LINK_HOVER = {
+  rest: { color: "var(--aether-text-muted)" },
+  hover: { color: "var(--aether-text)" },
+};
+
+export const NAV_LINK_TRANSITION = {
+  type: "tween" as const,
+  ease: "easeOut" as const,
+  duration: 0.2,
+};
+
 /* ─── Dropdown (UserNavMenu) ───────────────────────────────────────── */
 
 export const DROPDOWN_VARIANTS = {

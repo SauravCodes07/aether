@@ -17,7 +17,7 @@ type LogoProps = {
 };
 
 const sizeClasses = {
-  nav: "h-9 md:h-12",
+  nav: "h-10 md:h-14",
   auth: "h-12 md:h-16",
   footer: "h-9 md:h-12",
 } as const;
@@ -39,6 +39,10 @@ export function Logo({ className, href = "/", variant = "nav" }: LogoProps) {
     sizeClasses[variant],
     className,
   );
+
+  // Nav variant: 40px mobile → 56px desktop for Linear-level prominence
+  // Auth variant: 48px mobile → 64px desktop for centered brand presence
+  // Footer variant: 36px mobile → 48px desktop for balanced copyright area
 
   const logoContent = (
     <motion.div
