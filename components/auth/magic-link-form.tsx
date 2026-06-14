@@ -5,16 +5,16 @@ import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { resetPasswordAction } from "@/lib/auth/actions";
+import { magicLinkAction } from "@/lib/auth/actions";
 import { initialAuthActionState } from "@/types/auth";
 
 /**
- * Password reset request form.
- * Sends a password reset email to the user.
+ * Magic Link sign-in form.
+ * Sends a passwordless sign-in link to the user's email address.
  */
-export function ResetPasswordForm() {
+export function MagicLinkForm() {
   const [state, formAction, pending] = useActionState(
-    resetPasswordAction,
+    magicLinkAction,
     initialAuthActionState,
   );
 
@@ -23,7 +23,7 @@ export function ResetPasswordForm() {
       <div className="space-y-4">
         <Alert variant="success">
           <div className="space-y-2">
-            <p className="font-medium">Email sent</p>
+            <p className="font-medium">Check your email</p>
             <p className="text-sm opacity-80">{state.message}</p>
           </div>
         </Alert>
@@ -47,9 +47,9 @@ export function ResetPasswordForm() {
       {state.error && <Alert variant="error">{state.error}</Alert>}
 
       <div>
-        <Label htmlFor="reset-email">Email address</Label>
+        <Label htmlFor="magic-email">Email address</Label>
         <Input
-          id="reset-email"
+          id="magic-email"
           name="email"
           type="email"
           autoComplete="email"
@@ -57,11 +57,12 @@ export function ResetPasswordForm() {
           required
           disabled={pending}
           error={state.fieldErrors?.email}
+          aria-describedby={state.fieldErrors?.email ? "magic-email-error" : undefined}
         />
       </div>
 
       <Button type="submit" className="w-full" size="lg" disabled={pending}>
-        {pending ? "Sending reset link..." : "Send reset link"}
+        {pending ? "Sending magic link..." : "Send magic link"}
       </Button>
     </form>
   );

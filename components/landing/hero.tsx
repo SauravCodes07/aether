@@ -7,10 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Container } from "@/components/ui/container";
 import { motion } from "framer-motion";
 import {
-  PANEL_FLOAT_VARIANTS,
   FADE_UP_VARIANTS,
   SECTION_REVEAL_VARIANTS,
-  SPRING_PRESETS,
   PARALLAX_LAYER_VARIANTS,
 } from "@/lib/motion";
 import { SpatialCanvas } from "@/components/ui/spatial-canvas";

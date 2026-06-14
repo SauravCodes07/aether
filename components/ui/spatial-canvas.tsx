@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, type Variants } from "framer-motion";
+import { motion } from "framer-motion";
 import { SPRING_PRESETS, DATA_FLOW_VARIANTS } from "@/lib/motion";
 
 export function SpatialCanvas() {
