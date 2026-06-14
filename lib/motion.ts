@@ -19,6 +19,8 @@ export const SPRING_PRESETS = {
   gentle: { type: "spring" as const, stiffness: 80, damping: 20 },
   navbar: { type: "spring" as const, stiffness: 350, damping: 25 },
   floating: { type: "spring" as const, stiffness: 50, damping: 10 },
+  cinematic: { type: "spring" as const, stiffness: 40, damping: 25, mass: 1.2 },
+  telemetry: { type: "spring" as const, stiffness: 200, damping: 30, restDelta: 0.001 },
 } as const;
 
 /* ─── Ease / Tween Presets ─────────────────────────────────────────── */
@@ -30,6 +32,7 @@ export const EASE_PRESETS = {
   elegant: { type: "tween" as const, ease: [0.22, 1, 0.36, 1] as const, duration: 0.8 },
   easeInOut: { type: "tween" as const, ease: "easeInOut" as const, duration: 0.25 },
   ambient: { type: "tween" as const, ease: [0.45, 0, 0.55, 1] as const, duration: 8 },
+  ultraSlow: { type: "tween" as const, ease: [0.16, 1, 0.3, 1] as const, duration: 2.5 },
 } as const;
 
 /* ─── Standard Durations ───────────────────────────────────────────── */
@@ -41,9 +44,32 @@ export const DURATION = {
   slow: 0.8,
   reveal: 0.6,
   ambient: 8,
+  glitch: 0.1,
 } as const;
 
 /* ─── Stagger Delays ───────────────────────────────────────────────── */
+
+/* ─── Telemetry & Data Streams ────────────────────────────────────── */
+
+export const TELEMETRY_STREAM_VARIANTS = {
+  hidden: { opacity: 0, x: -10 },
+  visible: { 
+    opacity: 1, 
+    x: 0,
+    transition: { ...SPRING_PRESETS.telemetry }
+  },
+};
+
+export const DATA_FLOW_VARIANTS = {
+  animate: {
+    strokeDashoffset: [0, -20],
+    transition: {
+      duration: 1,
+      repeat: Infinity,
+      ease: "linear",
+    },
+  },
+};
 
 export const STAGGER = {
   fast: 0.05,
@@ -91,6 +117,32 @@ export const FLOATING_SLOW = {
       repeatType: "mirror" as const,
     },
   },
+};
+
+/* ─── Parallax & Perspective ───────────────────────────────────────── */
+
+export const PERSPECTIVE_CONTAINER_VARIANTS = {
+  hidden: { opacity: 0, rotateX: 20, y: 40, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    rotateX: 12,
+    y: 0,
+    scale: 1,
+    transition: { ...SPRING_PRESETS.cinematic, delay: 0.2 },
+  },
+};
+
+export const PARALLAX_LAYER_VARIANTS = {
+  deep: { y: -20 },
+  mid: { y: -40 },
+  front: { y: -60 },
+};
+
+/* ─── Storytelling ─────────────────────────────────────────────────── */
+
+export const SECTION_EXIT_VARIANTS = {
+  visible: { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" },
+  exit: { opacity: 0, y: -40, scale: 0.98, filter: "blur(10px)", transition: EASE_PRESETS.elegant },
 };
 
 /* ─── Slide In ─────────────────────────────────────────────────────── */

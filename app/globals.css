@@ -383,6 +383,49 @@ body {
     z-index: 0;
   }
 
+  .aurora-bg::before,
+  .aurora-bg::after,
+  .aurora-layer-3,
+  .aurora-layer-4,
+  .aurora-layer-5 {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Layer 5: Dynamic Illumination */
+  .aurora-layer-5 {
+    inset: 0;
+    background: radial-gradient(
+      800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      rgba(139, 92, 246, 0.15),
+      transparent 80%
+    );
+    mix-blend-mode: plus-lighter;
+    z-index: 1;
+  }
+
+  /* Layer 6: Granular Cinematic Noise */
+  .noise-layer {
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    opacity: 0.04;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+  }
+
+  .aurora-layer-3 {
+    top: 10%;
+    right: 10%;
+    width: 70%;
+    height: 50%;
+    background: radial-gradient(circle, var(--aether-aurora-indigo) 0%, transparent 70%);
+    filter: blur(140px) opacity(0.2);
+    animation: aurora-drift 40s infinite alternate-reverse ease-in-out;
+  }
+
   .aurora-bg > * {
     position: relative;
     z-index: 1;
@@ -476,7 +519,7 @@ body {
   position: absolute;
   top: -20%;
   left: 30%;
-  width: 80%;
+    width: 90%;
   height: 60%;
   background: radial-gradient(
     circle,
@@ -484,7 +527,7 @@ body {
     rgba(139, 92, 246, 0.05) 40%,
     transparent 70%
   );
-  animation: float-slow-1 25s infinite alternate ease-in-out;
+    animation: float-slow-1 35s infinite alternate ease-in-out;
 }
 
 .ambient-bg::after {
@@ -500,7 +543,20 @@ body {
     rgba(34, 211, 238, 0.03) 45%,
     transparent 75%
   );
-  animation: float-slow-2 20s infinite alternate ease-in-out;
+  animation: float-slow-2 28s infinite alternate ease-in-out;
+}
+
+/* Volumetric Depth Fog */
+.depth-fog {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(var(--aether-bg-rgb), 0.4) 50%,
+    var(--aether-bg) 100%
+  );
+  pointer-events: none;
 }
 
 /* ─── Grid Pattern ──────────────────────────────────────────────── */
@@ -651,4 +707,3 @@ body::before {
 .spotlight-card:hover::after {
   opacity: 1;
 }
-

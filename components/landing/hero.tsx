@@ -7,12 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Container } from "@/components/ui/container";
 import { motion } from "framer-motion";
 import {
-  FLOATING_SLOW,
   PANEL_FLOAT_VARIANTS,
-  EASE_PRESETS,
   FADE_UP_VARIANTS,
   SECTION_REVEAL_VARIANTS,
+  SPRING_PRESETS,
+  PARALLAX_LAYER_VARIANTS,
 } from "@/lib/motion";
+import { SpatialCanvas } from "@/components/ui/spatial-canvas";
 
 /**
  * Hero — interactive product-first workspace showcase.
@@ -71,7 +72,7 @@ export function Hero() {
 
       <Container className="relative z-10 py-16 sm:py-24">
         {/* ─── Copy ─────────────────────────────────────────────── */}
-        <motion.div
+        <motion.div 
           variants={FADE_UP_VARIANTS}
           initial="hidden"
           animate="visible"
@@ -154,189 +155,88 @@ export function Hero() {
               </div>
             </div>
 
-            {/* Workspace canvas area */}
-            <div
-              className="relative h-[420px] sm:h-[500px] w-full overflow-hidden"
-              style={{
-                perspective: "1000px",
-              }}
-            >
-              {/* 3D canvas mockup with subtle tilt */}
-              <motion.div
-                animate={{ rotateX: 2, rotateY: -2 }}
-                transition={EASE_PRESETS.ambient}
-                className="absolute inset-0 flex items-center justify-center"
-                style={{ transformStyle: "preserve-3d" }}
+            {/* ─── Operational Workspace Layout ─────────────────── */}
+            <div className="relative flex h-[500px] w-full overflow-hidden bg-aether-bg/50">
+              
+              {/* LEFT: Scene Graph */}
+              <motion.aside 
+                variants={PARALLAX_LAYER_VARIANTS}
+                custom={0}
+                className="hidden w-64 flex-col border-r border-aether-border/50 bg-aether-surface/20 p-4 md:flex"
               >
-                {/* Grid lines */}
-                <svg
-                  className="absolute inset-0 w-full h-full opacity-[0.04]"
-                  viewBox="0 0 800 500"
-                >
-                  <defs>
-                    <pattern
-                      id="grid"
-                      width="40"
-                      height="40"
-                      patternUnits="userSpaceOnUse"
-                    >
-                      <path
-                        d="M 40 0 L 0 0 0 40"
-                        fill="none"
-                        stroke="white"
-                        strokeWidth="0.5"
-                      />
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#grid)" />
-                </svg>
-              </motion.div>
-
-              {/* ── Floating Panel: Scene Graph ──────────────────── */}
-              <motion.div
-                variants={FLOATING_SLOW}
-                animate="animate"
-                className="absolute top-6 left-6 w-52 rounded-xl border border-aether-border/60 bg-aether-surface/80 p-4 shadow-aether-lg backdrop-blur-sm"
-              >
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="text-xs font-medium text-aether-text">
-                    Scene Graph
-                  </span>
-                  <span className="h-2 w-2 rounded-full bg-aether-accent" />
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="label-sm !tracking-normal !text-[10px]">Hierarchy</span>
+                  <div className="h-1.5 w-1.5 rounded-full bg-aether-accent" />
                 </div>
-                <div className="space-y-2">
-                  {["Environment", "Lighting", "Camera", "Objects (3)"].map(
-                    (node) => (
-                      <div
-                        key={node}
-                        className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-aether-text-muted hover:bg-aether-surface-active/40 transition-colors"
-                      >
-                        <svg
-                          className="h-3 w-3 text-aether-accent/60"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"
-                          />
-                        </svg>
-                        {node}
-                      </div>
-                    ),
-                  )}
+                <div className="space-y-1">
+                  {["Environment", "Sun Light", "Orbit Camera", "Mesh_Player", "Node_Graph"].map((item, i) => (
+                    <div key={item} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-xs text-aether-text-muted hover:bg-aether-surface/60 transition-colors cursor-default">
+                      <div className="h-3 w-3 border border-aether-border-strong rounded-sm" />
+                      {item}
+                    </div>
+                  ))}
                 </div>
-              </motion.div>
+              </motion.aside>
 
-              {/* ── Floating Panel: AI Assistant ─────────────────── */}
-              <motion.div
-                variants={PANEL_FLOAT_VARIANTS}
+              {/* CENTER: Spatial Canvas (The Operational Heart) */}
+              <main className="relative flex-1 p-6">
+                <SpatialCanvas />
+              </main>
+
+              {/* RIGHT: AI Assistant & Generation */}
+              <motion.aside 
+                variants={PARALLAX_LAYER_VARIANTS}
                 custom={1}
-                animate="animate"
-                className="absolute top-12 right-6 w-56 rounded-xl border border-aether-border/60 bg-aether-surface/80 p-4 shadow-aether-lg backdrop-blur-sm"
+                className="hidden w-72 flex-col border-l border-aether-border/50 bg-aether-surface/20 p-4 lg:flex"
               >
-                <div className="mb-3 flex items-center justify-between">
-                  <span className="text-xs font-medium text-aether-text">
-                    AI Assistant
-                  </span>
-                  {/* Animated AI pulse */}
-                  <span className="relative flex h-2.5 w-2.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-aether-accent opacity-60" />
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-aether-accent" />
-                  </span>
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="label-sm !tracking-normal !text-[10px]">AI Assistant</span>
+                  <span className="flex h-2 w-2"><span className="animate-ping absolute h-2 w-2 rounded-full bg-aether-accent opacity-75"/><span className="h-2 w-2 rounded-full bg-aether-accent"/></span>
                 </div>
-                <div className="space-y-2 rounded-lg bg-aether-surface/40 p-3">
-                  <div className="flex items-start gap-2">
-                    <span className="mt-0.5 h-5 w-5 rounded-full bg-gradient-to-br from-aether-accent to-aether-cyan flex items-center justify-center text-[9px] font-bold text-white select-none">
-                      A
-                    </span>
-                    <p className="text-xs text-aether-text-muted leading-relaxed">
-                      Generating 3D model: &ldquo;modern chair with organic
-                      curves&rdquo;&hellip;
+                <div className="space-y-4">
+                  <div className="rounded-lg border border-aether-border bg-aether-bg-elevated/80 p-3 shadow-aether-sm">
+                    <p className="text-[11px] leading-relaxed text-aether-text-muted">
+                      Generating high-fidelity PBR textures for <span className="text-aether-cyan">Mesh_Player</span>...
                     </p>
+                    <div className="mt-2 h-1 w-full rounded-full bg-aether-border overflow-hidden">
+                      <motion.div 
+                        initial={{ width: "0%" }}
+                        animate={{ width: "65%" }}
+                        transition={{ duration: 4, repeat: Infinity, repeatType: "reverse" }}
+                        className="h-full bg-gradient-to-r from-aether-accent to-aether-cyan" 
+                      />
+                    </div>
                   </div>
-                  {/* Progress bar */}
-                  <div className="h-1 w-full rounded-full bg-aether-border/50 overflow-hidden">
-                    <motion.div
-                      initial={{ width: "0%" }}
-                      animate={{ width: "72%" }}
-                      transition={{ duration: 3, ease: "easeOut" }}
-                      className="h-full rounded-full bg-gradient-to-r from-aether-accent to-aether-cyan"
-                    />
+                  <div className="space-y-2 opacity-50">
+                    <div className="h-8 w-full rounded bg-aether-surface/60" />
+                    <div className="h-8 w-full rounded bg-aether-surface/60" />
                   </div>
                 </div>
-              </motion.div>
+              </motion.aside>
 
-              {/* ── Floating Panel: Deployment Status ────────────── */}
-              <motion.div
-                variants={PANEL_FLOAT_VARIANTS}
-                custom={2}
-                animate="animate"
-                className="absolute bottom-6 left-8 w-44 rounded-xl border border-aether-border/60 bg-aether-surface/80 p-3 shadow-aether-lg backdrop-blur-sm"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-medium text-aether-text">
-                    Deployment
-                  </span>
-                  <span className="text-[10px] text-aether-success font-medium">
-                    ● Live
-                  </span>
-                </div>
-                <div className="text-[10px] text-aether-text-subtle space-y-1">
-                  <div className="flex justify-between">
-                    <span>Region</span>
-                    <span className="text-aether-text-muted">us-east-1</span>
+              {/* BOTTOM: Status Bar */}
+              <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between border-t border-aether-border/50 bg-aether-surface/40 px-4 py-2 backdrop-blur-md">
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-aether-success" />
+                    <span className="text-[10px] text-aether-text-subtle font-mono">us-east-1 · 12ms</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Latency</span>
-                    <span className="text-aether-text-muted">12ms</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Build</span>
-                    <span className="text-aether-text-muted">v2.4.1</span>
+                  <div className="h-3 w-px bg-aether-border" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-aether-text-subtle font-mono uppercase tracking-tighter">v2.4.1-stable</span>
                   </div>
                 </div>
-              </motion.div>
-
-              {/* ── Floating Panel: Collaboration ───────────────── */}
-              <motion.div
-                variants={PANEL_FLOAT_VARIANTS}
-                custom={3}
-                animate="animate"
-                className="absolute bottom-8 right-8 w-40 rounded-xl border border-aether-border/60 bg-aether-surface/80 p-3 shadow-aether-lg backdrop-blur-sm"
-              >
-                <span className="text-xs font-medium text-aether-text mb-3 block">
-                  Collaborators
-                </span>
-                <div className="flex -space-x-2">
-                  {["#8b5cf6", "#22d3ee", "#f59e0b", "#ef4444"].map(
-                    (color, i) => (
-                      <div
-                        key={i}
-                        className="h-7 w-7 rounded-full border-2 border-aether-bg-elevated flex items-center justify-center text-[10px] font-bold text-white"
-                        style={{ backgroundColor: color }}
-                      >
-                        {["S", "M", "K", "J"][i]}
+                <div className="flex items-center gap-3">
+                  <div className="flex -space-x-1.5">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="h-5 w-5 rounded-full border border-aether-bg bg-aether-surface flex items-center justify-center text-[8px] text-aether-text-muted">
+                        {String.fromCharCode(64 + i)}
                       </div>
-                    ),
-                  )}
-                  <div className="h-7 w-7 rounded-full border-2 border-aether-bg-elevated bg-aether-surface flex items-center justify-center text-[10px] text-aether-text-muted">
-                    +2
+                    ))}
                   </div>
+                  <span className="text-[10px] text-aether-text-subtle">Multiplayer</span>
                 </div>
-              </motion.div>
-
-              {/* ── Bottom edge glow ─────────────────────────────── */}
-              <div
-                className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none"
-                style={{
-                  background:
-                    "linear-gradient(to top, var(--aether-bg) 0%, transparent 100%)",
-                }}
-              />
+              </div>
             </div>
           </div>
         </motion.div>
