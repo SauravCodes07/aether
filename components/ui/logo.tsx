@@ -6,37 +6,66 @@ import { cn } from "@/lib/utils";
 import { siteConfig } from "@/config/site";
 import logoImg from "../../public/logo.png";
 import { motion } from "framer-motion";
-import { SCALE_HOVER_VARIANTS, HOVER_TAP_TRANSITION } from "@/lib/motion";
+import { SPRING_PRESETS } from "@/lib/motion";
 
 type LogoProps = {
   className?: string;
-  showIcon?: boolean;
   /** Set to `null` to render without a link (avoids nested anchors). Defaults to `/`. */
   href?: string | null;
+  /** Size variant: "nav" (navbar), "auth" (auth pages), "footer" (footer) */
+  variant?: "nav" | "auth" | "footer";
 };
 
-export function Logo(props: LogoProps) {
-  const { className, href = "/" } = props;
+const sizeClasses = {
+  nav: "h-9 md:h-12",
+  auth: "h-12 md:h-16",
+  footer: "h-9 md:h-12",
+} as const;
+
+/**
+ * Aether logo — premium, minimal, with subtle ambient lighting and hover elevation.
+ *
+ * Design references: Railway, Linear, Arc Browser, Apple.
+ *
+ * - No obvious glow blobs or neon effects.
+ * - Subtle ambient shadow on the logo itself.
+ * - Hover lifts the logo smoothly (translate + shadow depth).
+ * - Tap scales down for tactile feedback.
+ * - Fast spring for snappy, premium feel.
+ */
+export function Logo({ className, href = "/", variant = "nav" }: LogoProps) {
   const classes = cn(
-    "group relative inline-flex items-center justify-center transition-all duration-300 select-none",
+    "group relative inline-flex items-center justify-center select-none shrink-0",
+    sizeClasses[variant],
     className,
   );
 
   const logoContent = (
     <motion.div
-      variants={SCALE_HOVER_VARIANTS}
-      whileHover="hover"
-      whileTap="tap"
-      transition={HOVER_TAP_TRANSITION}
+      whileHover={{ scale: 1.05, y: -1 }}
+      whileTap={{ scale: 0.97 }}
+      transition={SPRING_PRESETS.snappy}
       className="relative flex h-full w-auto items-center justify-center"
     >
-      {/* Background glow orb that animates on hover */}
-      <div className="absolute -inset-2 -z-10 bg-gradient-to-r from-aether-accent/20 to-aether-cyan/10 blur-md opacity-0 transition-opacity duration-300 group-hover:opacity-100 rounded-full" />
-      
+      {/* Subtle ambient light underneath — no obvious glow blob */}
+      <div
+        className="absolute inset-0 -z-10 rounded-full opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        style={{
+          background:
+            "radial-gradient(ellipse at center, rgba(139,92,246,0.12) 0%, transparent 70%)",
+          filter: "blur(12px)",
+        }}
+        aria-hidden="true"
+      />
+
       <Image
         src={logoImg}
         alt={siteConfig.name}
-        className="h-full w-auto object-contain drop-shadow-[0_0_10px_rgba(139,92,246,0.3)] transition-all duration-300 group-hover:drop-shadow-[0_0_18px_rgba(139,92,246,0.6)]"
+        className="h-full w-auto object-contain transition-all duration-300"
+        style={{
+          filter:
+            "drop-shadow(0 2px 4px rgba(0,0,0,0.3)) drop-shadow(0 4px 8px rgba(0,0,0,0.15))",
+        }}
         priority
       />
     </motion.div>
@@ -51,9 +80,16 @@ export function Logo(props: LogoProps) {
   }
 
   return (
-    <Link href={href} className={classes} aria-label={`${siteConfig.name} home`}>
+    <Link
+      href={href}
+      className={cn(
+        classes,
+        "transition-opacity duration-200 hover:opacity-90 active:opacity-80",
+      )}
+      aria-label={`${siteConfig.name} home`}
+      prefetch={true}
+    >
       {logoContent}
     </Link>
   );
 }
-

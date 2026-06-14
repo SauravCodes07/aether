@@ -153,6 +153,17 @@
   --aether-shadow-glow-ai: var(--aether-shadow-glow-accent);
   --aether-shadow-glow-tracking: var(--aether-shadow-glow-cyan);
 
+  /* Premium shadows (added in Phase 0 Task 2) */
+  --aether-shadow-soft-white:
+    0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --aether-shadow-deep-accent:
+    0 0 60px var(--aether-accent-glow),
+    0 0 120px rgba(139, 92, 246, 0.05);
+  --aether-shadow-lift:
+    0 4px 6px rgba(0, 0, 0, 0.3),
+    0 12px 24px rgba(0, 0, 0, 0.4);
+
   /* ── Glassmorphism ────────────────────────────────────────────── */
   --aether-glass-bg: rgba(14, 14, 16, 0.72);
   --aether-glass-bg-strong: rgba(20, 20, 22, 0.85);
@@ -214,5 +225,28 @@
     ellipse at center,
     rgba(34, 211, 238, 0.06) 0%,
     transparent 70%
+  );
+
+  /* Aurora gradient primitives (Phase 0 Task 2) */
+  --aether-aurora-violet: rgba(139, 92, 246, 0.25);
+  --aether-aurora-cyan: rgba(34, 211, 238, 0.12);
+  --aether-aurora-indigo: rgba(99, 102, 241, 0.15);
+  --aether-aurora-pink: rgba(236, 72, 153, 0.08);
+
+  /* Mesh gradient primitives (Phase 0 Task 2) */
+  --aether-mesh-1: radial-gradient(
+    ellipse 80% 60% at 0% 20%,
+    rgba(139, 92, 246, 0.15) 0%,
+    transparent 60%
+  );
+  --aether-mesh-2: radial-gradient(
+    ellipse 60% 80% at 100% 80%,
+    rgba(34, 211, 238, 0.1) 0%,
+    transparent 60%
+  );
+  --aether-mesh-3: radial-gradient(
+    ellipse 50% 50% at 50% 50%,
+    rgba(99, 102, 241, 0.08) 0%,
+    transparent 60%
   );
 }

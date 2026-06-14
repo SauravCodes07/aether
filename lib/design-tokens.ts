@@ -40,6 +40,9 @@ export const shadows = {
   xl: "0 16px 48px rgba(0, 0, 0, 0.5)",
   glowAccent: "0 0 40px rgba(139, 92, 246, 0.35)",
   glowCyan: "0 0 30px rgba(34, 211, 238, 0.2)",
+  softWhite: "0 1px 0 rgba(255, 255, 255, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.06)",
+  deepAccent: "0 0 60px rgba(139, 92, 246, 0.35), 0 0 120px rgba(139, 92, 246, 0.05)",
+  lift: "0 4px 6px rgba(0, 0, 0, 0.3), 0 12px 24px rgba(0, 0, 0, 0.4)",
 } as const;
 
 export const typography = {

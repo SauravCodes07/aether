@@ -1,4 +1,5 @@
 import { Container } from "@/components/ui/container";
+import { Logo } from "@/components/ui/logo";
 
 type AuthShellProps = {
   title: string;
@@ -14,9 +15,12 @@ export function AuthShell({ title, subtitle, children, footer }: AuthShellProps)
 
       <Container className="relative z-10 w-full max-w-lg">
         <div className="glass-strong rounded-aether-2xl p-10 shadow-aether-lg sm:p-12">
-          <div className="mb-8 text-center">
-            <h1 className="heading-md text-gradient-subtle mb-2">{title}</h1>
-            <p className="body-sm">{subtitle}</p>
+          <div className="mb-8 flex flex-col items-center gap-4 text-center">
+            <Logo variant="auth" href={null} />
+            <div>
+              <h1 className="heading-md text-gradient-subtle mb-2">{title}</h1>
+              <p className="body-sm">{subtitle}</p>
+            </div>
           </div>
 
           {children}

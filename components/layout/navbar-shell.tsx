@@ -94,8 +94,8 @@ export function NavbarShell() {
         style={{ width: `${scrollProgress}%` }}
       />
 
-      <Container as="nav" className="flex h-16 md:h-20 items-center justify-between transition-all duration-500">
-        <Logo className="h-10 md:h-14" />
+      <Container as="nav" className="flex h-16 md:h-20 items-center justify-between gap-6 transition-all duration-500">
+        <Logo variant="nav" />
 
         {/* Desktop Navigation Links */}
         <ul className="hidden items-center gap-8 md:flex h-full">
