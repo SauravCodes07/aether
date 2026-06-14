@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { SPRING_PRESETS, DATA_FLOW_VARIANTS } from "@/lib/motion";
 
 export function SpatialCanvas() {
@@ -36,7 +36,7 @@ export function SpatialCanvas() {
               stroke="currentColor"
               strokeWidth="0.75"
               strokeDasharray="4 4"
-              variants={DATA_FLOW_VARIANTS}
+              variants={DATA_FLOW_VARIANTS as Variants}
               animate="animate"
             />
             

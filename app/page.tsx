@@ -1,4 +1,3 @@
-import { motion, useScroll, useTransform } from "framer-motion";
 import { Hero } from "@/components/landing/hero";
 import { TrustIndicators } from "@/components/landing/trust-indicators";
 import { Platform } from "@/components/landing/platform";
@@ -10,24 +9,16 @@ import { Testimonials } from "@/components/landing/testimonials";
 import { Pricing } from "@/components/landing/pricing";
 import { FAQ } from "@/components/landing/faq";
 import { AnimateIn } from "@/components/ui/animate-in";
+import { PageEffects } from "@/components/landing/page-effects";
 
 /**
  * Landing page — continuous scroll story.
  */
 export default function HomePage() {
-  const { scrollYProgress } = useScroll();
-  const backgroundY = useTransform(scrollYProgress, [0, 1], ["0%", "20%"]);
-
   return (
     <main className="relative perspective-container">
       {/* Cinematic Background Parallax */}
-      <motion.div style={{ y: backgroundY }} className="ambient-bg">
-        <div className="aurora-bg h-full w-full">
-          <div className="aurora-layer-3" />
-          <div className="aurora-layer-4" />
-        </div>
-        <div className="depth-fog" />
-      </motion.div>
+      <PageEffects />
 
       <Hero />
       
