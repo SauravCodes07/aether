@@ -18,6 +18,7 @@ export const SPRING_PRESETS = {
   snappy: { type: "spring" as const, stiffness: 400, damping: 30 },
   gentle: { type: "spring" as const, stiffness: 80, damping: 20 },
   navbar: { type: "spring" as const, stiffness: 350, damping: 25 },
+  floating: { type: "spring" as const, stiffness: 50, damping: 10 },
 } as const;
 
 /* ─── Ease / Tween Presets ─────────────────────────────────────────── */
@@ -27,8 +28,8 @@ export const EASE_PRESETS = {
   rapid: { type: "tween" as const, ease: [0.16, 1, 0.3, 1] as const, duration: 0.35 },
   slow: { type: "tween" as const, ease: [0.16, 1, 0.3, 1] as const, duration: 1.2 },
   elegant: { type: "tween" as const, ease: [0.22, 1, 0.36, 1] as const, duration: 0.8 },
-  /** Standard easeInOut for drawer/panel animations */
   easeInOut: { type: "tween" as const, ease: "easeInOut" as const, duration: 0.25 },
+  ambient: { type: "tween" as const, ease: [0.45, 0, 0.55, 1] as const, duration: 8 },
 } as const;
 
 /* ─── Standard Durations ───────────────────────────────────────────── */
@@ -39,6 +40,7 @@ export const DURATION = {
   medium: 0.5,
   slow: 0.8,
   reveal: 0.6,
+  ambient: 8,
 } as const;
 
 /* ─── Stagger Delays ───────────────────────────────────────────────── */
@@ -52,39 +54,53 @@ export const STAGGER = {
 
 /* ─── Hover & Tap Presets ──────────────────────────────────────────── */
 
-/**
- * Standard whileHover/whileTap for interactive elements.
- * Usage: <motion.div whileHover="hover" whileTap="tap" variants={HOVER_TAP_VARIANTS}>
- */
 export const HOVER_TAP_VARIANTS = {
   hover: { scale: 1.03 },
   tap: { scale: 0.95 },
 };
 
-/**
- * Transition that pairs with HOVER_TAP_VARIANTS.
- * Preferred: snappy spring for tactile feedback.
- */
 export const HOVER_TAP_TRANSITION = SPRING_PRESETS.snappy;
-
-/* ─── Scale Hover (logo, icons) ────────────────────────────────────── */
 
 export const SCALE_HOVER_VARIANTS = {
   hover: { scale: 1.03 },
   tap: { scale: 0.95 },
 };
 
-/* ─── Slide In (horizontal) ────────────────────────────────────────── */
+/* ─── Floating Ambient ─────────────────────────────────────────────── */
+
+export const FLOATING_VARIANTS = {
+  animate: (delay = 0) => ({
+    y: [0, -8, 0, 6, 0],
+    transition: {
+      ...SPRING_PRESETS.floating,
+      repeat: Infinity,
+      repeatType: "mirror" as const,
+      delay,
+      duration: 6,
+    },
+  }),
+};
+
+export const FLOATING_SLOW = {
+  animate: {
+    y: [0, -12, 0, 8, 0],
+    transition: {
+      duration: 10,
+      ease: "easeInOut" as const,
+      repeat: Infinity,
+      repeatType: "mirror" as const,
+    },
+  },
+};
+
+/* ─── Slide In ─────────────────────────────────────────────────────── */
 
 export const SLIDE_IN_LEFT_VARIANTS = {
   hidden: { opacity: 0, x: -32 },
   visible: (delay = 0) => ({
     opacity: 1,
     x: 0,
-    transition: {
-      ...SPRING_PRESETS.default,
-      delay,
-    },
+    transition: { ...SPRING_PRESETS.default, delay },
   }),
 };
 
@@ -93,71 +109,43 @@ export const SLIDE_IN_RIGHT_VARIANTS = {
   visible: (delay = 0) => ({
     opacity: 1,
     x: 0,
-    transition: {
-      ...SPRING_PRESETS.default,
-      delay,
-    },
+    transition: { ...SPRING_PRESETS.default, delay },
   }),
 };
 
-/* ─── Slide In (vertical) — for dropdown menus ─────────────────────── */
-
 export const SLIDE_DOWN_VARIANTS = {
   hidden: { opacity: 0, y: -8 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: SPRING_PRESETS.snappy,
-  },
-  exit: {
-    opacity: 0,
-    y: -8,
-    transition: SPRING_PRESETS.navbar,
-  },
+  visible: { opacity: 1, y: 0, transition: SPRING_PRESETS.snappy },
+  exit: { opacity: 0, y: -8, transition: SPRING_PRESETS.navbar },
 };
 
-/* ─── Fade Up ──────────────────────────────────────────────────────── */
+/* ─── Fade Up / In ─────────────────────────────────────────────────── */
 
 export const FADE_UP_VARIANTS = {
   hidden: { opacity: 0, y: 24 },
   visible: (delay = 0) => ({
     opacity: 1,
     y: 0,
-    transition: {
-      ...SPRING_PRESETS.default,
-      delay,
-    },
+    transition: { ...SPRING_PRESETS.default, delay },
   }),
 };
-
-/* ─── Fade In ──────────────────────────────────────────────────────── */
 
 export const FADE_IN_VARIANTS = {
   hidden: { opacity: 0 },
   visible: (delay = 0) => ({
     opacity: 1,
-    transition: {
-      ...EASE_PRESETS.rapid,
-      delay,
-    },
+    transition: { ...EASE_PRESETS.rapid, delay },
   }),
 };
-
-/* ─── Scale Up ─────────────────────────────────────────────────────── */
 
 export const SCALE_UP_VARIANTS = {
   hidden: { opacity: 0, scale: 0.95 },
   visible: (delay = 0) => ({
     opacity: 1,
     scale: 1,
-    transition: {
-      ...SPRING_PRESETS.default,
-      delay,
-    },
+    transition: { ...SPRING_PRESETS.default, delay },
   }),
 };
-
-/* ─── Blur Fade (premium reveal) ───────────────────────────────────── */
 
 export const BLUR_FADE_VARIANTS = {
   hidden: { opacity: 0, y: 16, filter: "blur(8px)" },
@@ -165,94 +153,52 @@ export const BLUR_FADE_VARIANTS = {
     opacity: 1,
     y: 0,
     filter: "blur(0px)",
-    transition: {
-      ...EASE_PRESETS.elegant,
-      delay,
-    },
+    transition: { ...EASE_PRESETS.elegant, delay },
   }),
 };
 
-/* ─── Stagger Container ────────────────────────────────────────────── */
+/* ─── Stagger ──────────────────────────────────────────────────────── */
 
 export const STAGGER_CONTAINER_VARIANTS = {
   hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: STAGGER.default,
-    },
-  },
+  visible: { transition: { staggerChildren: STAGGER.default } },
 };
 
 export const STAGGER_CONTAINER_SLOW = {
   hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: STAGGER.slow,
-    },
-  },
+  visible: { transition: { staggerChildren: STAGGER.slow } },
 };
-
-/* ─── Item variant for stagger children ────────────────────────────── */
 
 export const STAGGER_ITEM_VARIANTS = {
   hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: SPRING_PRESETS.default,
-  },
+  visible: { opacity: 1, y: 0, transition: SPRING_PRESETS.default },
 };
 
 /* ─── Mobile Drawer ────────────────────────────────────────────────── */
 
 export const MOBILE_DRAWER_VARIANTS = {
   hidden: { opacity: 0, height: 0 },
-  visible: {
-    opacity: 1,
-    height: "auto" as const,
-    transition: EASE_PRESETS.easeInOut,
-  },
-  exit: {
-    opacity: 0,
-    height: 0,
-    transition: EASE_PRESETS.easeInOut,
-  },
+  visible: { opacity: 1, height: "auto" as const, transition: EASE_PRESETS.easeInOut },
+  exit: { opacity: 0, height: 0, transition: EASE_PRESETS.easeInOut },
 };
-
-/* ─── Mobile Nav Item ──────────────────────────────────────────────── */
 
 export const MOBILE_NAV_ITEM_VARIANTS = {
   hidden: { opacity: 0, x: -10 },
   visible: (delay = 0) => ({
     opacity: 1,
     x: 0,
-    transition: {
-      ...SPRING_PRESETS.default,
-      delay,
-    },
+    transition: { ...SPRING_PRESETS.default, delay },
   }),
 };
 
-/* ─── Nav Active Line ──────────────────────────────────────────────── */
+/* ─── Nav ──────────────────────────────────────────────────────────── */
 
 export const NAV_ACTIVE_LINE_TRANSITION = SPRING_PRESETS.navbar;
 
-/* ─── Nav Hover Pill / Indicator ──────────────────────────────────── */
-
-/**
- * Underline that slides in on hover and snaps to active state.
- * Use via AnimatePresence + layoutId on the underline element.
- */
 export const NAV_HOVER_INDICATOR_VARIANTS = {
   hidden: { opacity: 0, scaleX: 0 },
-  visible: {
-    opacity: 1,
-    scaleX: 1,
-    transition: SPRING_PRESETS.snappy,
-  },
+  visible: { opacity: 1, scaleX: 1, transition: SPRING_PRESETS.snappy },
 };
-
-/* ─── Nav Link Hover ──────────────────────────────────────────────── */
 
 export const NAV_LINK_HOVER = {
   rest: { color: "var(--aether-text-muted)" },
@@ -265,25 +211,15 @@ export const NAV_LINK_TRANSITION = {
   duration: 0.2,
 };
 
-/* ─── Dropdown (UserNavMenu) ───────────────────────────────────────── */
+/* ─── Dropdown ─────────────────────────────────────────────────────── */
 
 export const DROPDOWN_VARIANTS = {
   hidden: { opacity: 0, scale: 0.95, y: 8 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    y: 0,
-    transition: SPRING_PRESETS.navbar,
-  },
-  exit: {
-    opacity: 0,
-    scale: 0.95,
-    y: 8,
-    transition: SPRING_PRESETS.navbar,
-  },
+  visible: { opacity: 1, scale: 1, y: 0, transition: SPRING_PRESETS.navbar },
+  exit: { opacity: 0, scale: 0.95, y: 8, transition: SPRING_PRESETS.navbar },
 };
 
-/* ─── Viewport config for useInView / whileInView ──────────────────── */
+/* ─── Viewport ─────────────────────────────────────────────────────── */
 
 export const VIEWPORT_ONCE = {
   once: true,
@@ -294,3 +230,36 @@ export const VIEWPORT_REPEAT = {
   once: false,
   margin: "-80px",
 } as const;
+
+/* ─── Card / Panel ─────────────────────────────────────────────────── */
+
+export const CARD_HOVER_VARIANTS = {
+  rest: { scale: 1, y: 0 },
+  hover: { scale: 1.02, y: -4, transition: SPRING_PRESETS.snappy },
+};
+
+export const PANEL_FLOAT_VARIANTS = {
+  animate: (i = 0) => ({
+    y: [0, -6, 0, 4, 0],
+    transition: {
+      duration: 5 + i,
+      ease: "easeInOut" as const,
+      repeat: Infinity,
+      repeatType: "mirror" as const,
+    },
+  }),
+};
+
+/* ─── Section Reveal ───────────────────────────────────────────────── */
+
+export const SECTION_REVEAL_VARIANTS = {
+  hidden: { opacity: 0, y: 40 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      ...SPRING_PRESETS.gentle,
+      staggerChildren: 0.1,
+    },
+  },
+};

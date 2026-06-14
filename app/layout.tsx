@@ -4,6 +4,7 @@ import { siteConfig } from "@/config/site";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { AuthProvider } from "@/components/providers/auth-provider";
+import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { getSessionUser } from "@/lib/auth/session";
 import "./globals.css";
 
@@ -54,6 +55,7 @@ export default async function RootLayout({
           <main className="flex-1">{children}</main>
           <Footer />
         </AuthProvider>
+        <ScrollReveal />
       </body>
     </html>
   );

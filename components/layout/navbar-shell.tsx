@@ -22,6 +22,7 @@ export function NavbarShell() {
   const [activeSection, setActiveSection] = useState("");
   const [hoveredSection, setHoveredSection] = useState("");
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [blurIntensity, setBlurIntensity] = useState(0);
   const prevScrollY = useRef(0);
 
   // ── Scroll Handler ───────────────────────────────────────────────
@@ -33,6 +34,10 @@ export function NavbarShell() {
 
       setScrolled(scrollY > 20);
       prevScrollY.current = scrollY;
+
+      // Dynamic blur intensity — increases with scroll depth
+      const maxScroll = 400;
+      setBlurIntensity(Math.min(scrollY / maxScroll, 1));
 
       if (totalScroll > 0) {
         setScrollProgress(Math.min((scrollY / totalScroll) * 100, 100));
@@ -91,11 +96,16 @@ export function NavbarShell() {
   return (
     <header
       className={cn(
-        "fixed inset-x-0 top-0 z-50 transition-all duration-700 ease-out",
+        "fixed inset-x-0 top-0 z-50 transition-all duration-500 ease-out",
         scrolled
-          ? "glass-strong border-b border-aether-border-strong/40 shadow-aether-navbar backdrop-blur-xl bg-aether-bg/80"
+          ? "border-b border-aether-border-strong/40 shadow-aether-navbar"
           : "bg-transparent border-b border-transparent",
       )}
+      style={{
+        backgroundColor: scrolled ? `rgba(7, 7, 8, ${0.6 + blurIntensity * 0.25})` : "transparent",
+        backdropFilter: scrolled ? `blur(${12 + blurIntensity * 12}px) saturate(${160 + blurIntensity * 40}%)` : "none",
+        WebkitBackdropFilter: scrolled ? `blur(${12 + blurIntensity * 12}px) saturate(${160 + blurIntensity * 40}%)` : "none",
+      }}
     >
       {/* Scroll Progress Bar */}
       <motion.div

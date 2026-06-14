@@ -1,3 +1,6 @@
+"use client";
+
+import { useRef } from "react";
 import { cn } from "@/lib/utils";
 
 type CardProps = {
@@ -7,12 +10,25 @@ type CardProps = {
 };
 
 export function Card({ children, className, hover = false }: CardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!cardRef.current || !hover) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    cardRef.current.style.setProperty("--mouse-x", `${x}px`);
+    cardRef.current.style.setProperty("--mouse-y", `${y}px`);
+  };
+
   return (
     <div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
       className={cn(
-        "rounded-xl border border-aether-border bg-aether-surface/50 p-6",
+        "spotlight-card rounded-xl border border-aether-border bg-aether-surface/50 p-6",
         hover &&
-          "transition-colors duration-200 hover:border-aether-border-strong hover:bg-aether-surface",
+          "transition-all duration-300 hover:border-aether-border-strong hover:bg-aether-surface hover:shadow-aether-lg hover:-translate-y-0.5",
         className,
       )}
     >
