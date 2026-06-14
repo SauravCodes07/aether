@@ -36,7 +36,7 @@ export function SpatialCanvas() {
               stroke="currentColor"
               strokeWidth="0.75"
               strokeDasharray="4 4"
-              variants={DATA_FLOW_VARIANTS as Variants}
+              variants={DATA_FLOW_VARIANTS}
               animate="animate"
             />
             

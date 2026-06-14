@@ -66,10 +66,10 @@ export const DATA_FLOW_VARIANTS = {
     transition: {
       duration: 1,
       repeat: Infinity,
-      ease: "linear",
+      ease: "linear" as const,
     },
   },
-};
+} as const;
 
 export const STAGGER = {
   fast: 0.05,

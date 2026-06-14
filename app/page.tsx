@@ -14,7 +14,7 @@ import { PageEffects } from "@/components/landing/page-effects";
 /**
  * Landing page — continuous scroll story.
  */
-export default function HomePage() {
+export default async function HomePage() {
   return (
     <main className="relative perspective-container">
       {/* Cinematic Background Parallax */}

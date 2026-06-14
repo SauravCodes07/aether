@@ -6,7 +6,7 @@ import {
   DashboardHeader,
   UserInfoCard,
 } from "@/components/dashboard/dashboard-header";
-import { DashboardMetrics } from "@/components/dashboard/dashboard-metrics";
+import { DashboardMetrics, DEFAULT_METRICS } from "@/components/dashboard/dashboard-metrics";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { WorkspaceOverview } from "@/components/dashboard/workspace-overview";
 import { DeploymentStatus } from "@/components/dashboard/deployment-status";
@@ -21,6 +21,10 @@ export const metadata: Metadata = {
 export default async function DashboardPage() {
   const { user } = await requireAuth();
 
+  // Real data fetching logic would reside here. 
+  // Using DEFAULT_METRICS as the initial 'real' data source structure.
+  const metrics = DEFAULT_METRICS;
+
   return (
     <section className="section-padding pt-28">
       <Container>
@@ -28,7 +32,7 @@ export default async function DashboardPage() {
 
         {/* ── Metrics Row ───────────────────────────────────────── */}
         <div className="mb-8">
-          <DashboardMetrics />
+          <DashboardMetrics data={metrics} />
         </div>
 
         {/* ── Bento Grid: Activity + Workspaces ─────────────────── */}

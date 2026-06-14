@@ -4,7 +4,17 @@ import { Card } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { STAGGER_CONTAINER_VARIANTS, STAGGER_ITEM_VARIANTS } from "@/lib/motion";
 
-const metrics = [
+export type MetricData = {
+  label: string;
+  value: string;
+  change: string;
+  trend: "up" | "down" | "neutral";
+  icon: React.ReactNode;
+  color: string;
+  bgColor: string;
+};
+
+export const DEFAULT_METRICS: MetricData[] = [
   {
     label: "Workspaces",
     value: "3",
@@ -60,7 +70,11 @@ const metrics = [
   },
 ];
 
-export function DashboardMetrics() {
+interface DashboardMetricsProps {
+  data?: MetricData[];
+}
+
+export function DashboardMetrics({ data = DEFAULT_METRICS }: DashboardMetricsProps) {
   return (
     <motion.div
       variants={STAGGER_CONTAINER_VARIANTS}
@@ -68,7 +82,7 @@ export function DashboardMetrics() {
       animate="visible"
       className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
     >
-      {metrics.map((metric) => (
+      {data.map((metric) => (
         <motion.div key={metric.label} variants={STAGGER_ITEM_VARIANTS}>
           <Card hover className="group relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-aether-accent/5 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
