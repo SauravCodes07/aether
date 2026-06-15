@@ -9,12 +9,7 @@ import { Logo } from "@/components/ui/logo";
 import { NavbarAuth } from "@/components/layout/navbar-auth";
 import { useAuth } from "@/hooks/use-auth";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  NAV_ACTIVE_LINE_TRANSITION,
-  MOBILE_DRAWER_VARIANTS,
-  MOBILE_NAV_ITEM_VARIANTS,
-  SPRING_PRESETS,
-} from "@/lib/motion";
+import { NAV_ACTIVE_LINE_TRANSITION, MOBILE_DRAWER_VARIANTS, MOBILE_NAV_ITEM_VARIANTS, SPRING_PRESETS } from "@/lib/motion";
 
 const SECTIONS = siteConfig.nav.map((item) => item.href.replace("#", ""));
 
@@ -30,260 +25,104 @@ export function NavbarShell() {
   const [blurIntensity, setBlurIntensity] = useState(0);
   const isHomePage = pathname === "/";
 
-  // ── Scroll Handler ───────────────────────────────────────────────
   useEffect(() => {
     const onScroll = () => {
       const scrollY = window.scrollY;
-      const totalScroll =
-        document.documentElement.scrollHeight - window.innerHeight;
+      const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
       setScrolled(scrollY > 20);
-      const maxScroll = 400;
-      setBlurIntensity(Math.min(scrollY / maxScroll, 1));
-      if (totalScroll > 0) {
-        setScrollProgress(Math.min((scrollY / totalScroll) * 100, 100));
-      }
+      setBlurIntensity(Math.min(scrollY / 400, 1));
+      if (totalScroll > 0) setScrollProgress(Math.min((scrollY / totalScroll) * 100, 100));
     };
     setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // ── ScrollSpy via IntersectionObserver ───────────────────────────
   useEffect(() => {
     if (!isHomePage) return;
-
     const observer = new IntersectionObserver(
       (entries) => {
-        // Find the most-visible section (largest intersection ratio)
-        let bestEntry: IntersectionObserverEntry | null = null;
-        for (const entry of entries) {
-          if (!bestEntry || entry.intersectionRatio > bestEntry.intersectionRatio) {
-            bestEntry = entry;
-          }
+        let best: IntersectionObserverEntry | null = null;
+        for (const e of entries) {
+          if (!best || e.intersectionRatio > best.intersectionRatio) best = e;
         }
-        if (bestEntry && bestEntry.isIntersecting) {
-          setActiveSection(`#${bestEntry.target.id}`);
-        }
+        if (best?.isIntersecting) setActiveSection(`#${best.target.id}`);
       },
-      {
-        root: null,
-        rootMargin: "-10% 0px -70% 0px",
-        threshold: [0, 0.1, 0.2, 0.3, 0.5, 0.7],
-      },
+      { root: null, rootMargin: "-10% 0px -70% 0px", threshold: [0, 0.1, 0.3, 0.5, 0.7] },
     );
-
-    SECTIONS.forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el);
-    });
-
+    SECTIONS.forEach((id) => { const el = document.getElementById(id); if (el) observer.observe(el); });
     return () => observer.disconnect();
   }, [isHomePage]);
 
-  // On route change, clear active section if not homepage
-  useEffect(() => {
-    if (!isHomePage) {
-      setActiveSection("");
-    }
-  }, [pathname, isHomePage]);
+  useEffect(() => { if (!isHomePage) setActiveSection(""); }, [pathname, isHomePage]);
 
-  // Restore active section after navigating to homepage
   useEffect(() => {
     if (isHomePage && window.location.hash) {
       setActiveSection(window.location.hash);
       setTimeout(() => {
         const el = document.querySelector(window.location.hash);
-        if (el) {
-          el.scrollIntoView({ behavior: "smooth" });
-        }
+        el?.scrollIntoView({ behavior: "smooth" });
       }, 100);
     }
   }, [isHomePage]);
 
-  // ── Body Scroll Lock ─────────────────────────────────────────────
-  useEffect(() => {
-    document.body.style.overflow = mobileOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [mobileOpen]);
+  useEffect(() => { document.body.style.overflow = mobileOpen ? "hidden" : ""; return () => { document.body.style.overflow = ""; }; }, [mobileOpen]);
 
   const closeMobile = useCallback(() => setMobileOpen(false), []);
 
-  // Handle nav link clicks — cross-route navigation to homepage sections
   const handleNavClick = useCallback(
     (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
       closeMobile();
       if (!href.startsWith("#")) return;
-
-      if (!isHomePage) {
-        e.preventDefault();
-        // Navigate to homepage with the hash
-        router.push(`/${href}`);
-      } else {
-        // Already on homepage — smooth scroll
-        e.preventDefault();
-        const id = href.replace("#", "");
-        const el = document.getElementById(id);
-        if (el) {
-          const offset = 90; // navbar height
-          const top = el.getBoundingClientRect().top + window.scrollY - offset;
-          window.scrollTo({ top, behavior: "smooth" });
-        }
-        setActiveSection(href);
+      e.preventDefault();
+      if (!isHomePage) { router.push(`/${href}`); return; }
+      const id = href.replace("#", "");
+      const el = document.getElementById(id);
+      if (el) {
+        const top = el.getBoundingClientRect().top + window.scrollY - 90;
+        window.scrollTo({ top, behavior: "smooth" });
       }
+      setActiveSection(href);
     },
     [isHomePage, router, closeMobile],
   );
 
   return (
     <header
-      className={cn(
-        "fixed inset-x-0 top-0 z-50 transition-all duration-500 ease-out",
-        scrolled
-          ? "border-b border-aether-border-strong/40 shadow-aether-navbar"
-          : "bg-transparent border-b border-transparent",
-      )}
-      style={{
-        backgroundColor: scrolled
-          ? `rgba(7, 7, 8, ${0.6 + blurIntensity * 0.25})`
-          : "transparent",
-        backdropFilter: scrolled
-          ? `blur(${12 + blurIntensity * 12}px) saturate(${160 + blurIntensity * 40}%)`
-          : "none",
-        WebkitBackdropFilter: scrolled
-          ? `blur(${12 + blurIntensity * 12}px) saturate(${160 + blurIntensity * 40}%)`
-          : "none",
-      }}
+      className={cn("fixed inset-x-0 top-0 z-50 transition-all duration-500 ease-out", scrolled ? "border-b border-aether-border-strong/40 shadow-aether-navbar" : "bg-transparent border-b border-transparent")}
+      style={{ backgroundColor: scrolled ? `rgba(7,7,8,${0.6 + blurIntensity * 0.25})` : "transparent", backdropFilter: scrolled ? `blur(${12 + blurIntensity * 12}px) saturate(${160 + blurIntensity * 40}%)` : "none", WebkitBackdropFilter: scrolled ? `blur(${12 + blurIntensity * 12}px) saturate(${160 + blurIntensity * 40}%)` : "none" }}
     >
-      {/* Scroll Progress Bar */}
-      <motion.div
-        className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-aether-accent via-aether-cyan to-aether-accent origin-left"
-        style={{ scaleX: scrollProgress / 100 }}
-        transition={SPRING_PRESETS.snappy}
-      />
-
-      <Container
-        as="nav"
-        className="flex h-16 md:h-20 items-center justify-between gap-8 transition-all duration-500"
-      >
+      <motion.div className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-aether-accent via-aether-cyan to-aether-accent origin-left" style={{ scaleX: scrollProgress / 100 }} transition={SPRING_PRESETS.snappy} />
+      <Container as="nav" className="flex h-16 md:h-20 items-center justify-between gap-8 transition-all duration-500">
         <Logo variant="nav" />
-
-        {/* Desktop Navigation Links */}
         <ul className="hidden items-center gap-1 md:flex h-full">
           {siteConfig.nav.map((item) => {
             const isActive = activeSection === item.href;
             const isHovered = hoveredSection === item.href;
-
             return (
               <li key={item.href} className="relative flex h-full items-center">
-                <a
-                  href={item.href}
-                  onClick={(e) => handleNavClick(e, item.href)}
-                  onMouseEnter={() => setHoveredSection(item.href)}
-                  onMouseLeave={() => setHoveredSection("")}
-                  className={cn(
-                    "relative z-10 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 select-none",
-                    isActive
-                      ? "text-aether-text"
-                      : "text-aether-text-muted hover:text-aether-text",
-                  )}
-                  aria-current={isActive ? "true" : undefined}
-                >
+                <a href={item.href} onClick={(e) => handleNavClick(e, item.href)} onMouseEnter={() => setHoveredSection(item.href)} onMouseLeave={() => setHoveredSection("")} className={cn("relative z-10 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 select-none", isActive ? "text-aether-text" : "text-aether-text-muted hover:text-aether-text")} aria-current={isActive ? "true" : undefined}>
                   {item.label}
-
-                  {/* Hover pill */}
-                  {isHovered && !isActive && (
-                    <motion.span
-                      layoutId="nav-hover-bg"
-                      className="absolute inset-0 -z-10 rounded-lg bg-aether-surface/40"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.15 }}
-                    />
-                  )}
-
-                  {/* Active pill + underline */}
-                  {isActive && (
-                    <motion.span
-                      layoutId="nav-active-line"
-                      className="absolute -bottom-[22px] md:-bottom-[30px] left-3 right-3 h-[2px] rounded-full bg-gradient-to-r from-aether-accent to-aether-cyan"
-                      transition={NAV_ACTIVE_LINE_TRANSITION}
-                    />
-                  )}
+                  {isHovered && !isActive && <motion.span layoutId="nav-hover-bg" className="absolute inset-0 -z-10 rounded-lg bg-aether-surface/40" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }} />}
+                  {isActive && <motion.span layoutId="nav-active-line" className="absolute -bottom-[22px] md:-bottom-[30px] left-3 right-3 h-[2px] rounded-full bg-gradient-to-r from-aether-accent to-aether-cyan" transition={NAV_ACTIVE_LINE_TRANSITION} />}
                 </a>
               </li>
             );
           })}
         </ul>
-
-        {/* Desktop Auth Controls */}
-        <div className="hidden md:flex">
-          <NavbarAuth user={user} />
-        </div>
-
-        {/* Mobile menu toggle */}
-        <button
-          type="button"
-          className={cn(
-            "flex h-10 w-10 items-center justify-center rounded-xl border transition-all duration-200 md:hidden",
-            "border-aether-border bg-aether-surface/40 text-aether-text-muted",
-            "hover:bg-aether-surface hover:text-aether-text hover:border-aether-border-strong",
-            "active:scale-90",
-          )}
-          onClick={() => setMobileOpen((prev) => !prev)}
-          aria-label={mobileOpen ? "Close menu" : "Open menu"}
-          aria-expanded={mobileOpen}
-        >
-          {mobileOpen ? (
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          ) : (
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          )}
+        <div className="hidden md:flex"><NavbarAuth user={user} /></div>
+        <button type="button" className={cn("flex h-10 w-10 items-center justify-center rounded-xl border transition-all duration-200 md:hidden", "border-aether-border bg-aether-surface/40 text-aether-text-muted", "hover:bg-aether-surface hover:text-aether-text hover:border-aether-border-strong", "active:scale-90")} onClick={() => setMobileOpen((p) => !p)} aria-label={mobileOpen ? "Close menu" : "Open menu"} aria-expanded={mobileOpen}>
+          {mobileOpen ? <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg> : <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>}
         </button>
       </Container>
-
-      {/* Mobile Drawer */}
       <AnimatePresence>
         {mobileOpen && (
-          <motion.div
-            variants={MOBILE_DRAWER_VARIANTS}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            className="glass-strong border-t border-aether-border-strong/60 md:hidden bg-aether-bg/95 backdrop-blur-2xl overflow-hidden"
-          >
+          <motion.div variants={MOBILE_DRAWER_VARIANTS} initial="hidden" animate="visible" exit="exit" className="glass-strong border-t border-aether-border-strong/60 md:hidden bg-aether-bg/95 backdrop-blur-2xl overflow-hidden">
             <Container className="flex flex-col gap-1 py-6">
               {siteConfig.nav.map((item, idx) => (
-                <motion.a
-                  key={item.href}
-                  href={item.href}
-                  variants={MOBILE_NAV_ITEM_VARIANTS}
-                  custom={idx * 0.05}
-                  className="rounded-lg px-4 py-3 text-sm font-medium text-aether-text-muted transition-colors hover:bg-aether-surface hover:text-aether-text"
-                  onClick={(e) => handleNavClick(e, item.href)}
-                >
-                  {item.label}
-                </motion.a>
+                <motion.a key={item.href} href={item.href} variants={MOBILE_NAV_ITEM_VARIANTS} custom={idx * 0.05} className="rounded-lg px-4 py-3 text-sm font-medium text-aether-text-muted transition-colors hover:bg-aether-surface hover:text-aether-text" onClick={(e) => handleNavClick(e, item.href)}>{item.label}</motion.a>
               ))}
-              <div className="mt-4 border-t border-aether-border-strong/40 pt-6">
-                <NavbarAuth user={user} layout="mobile" onNavigate={closeMobile} />
-              </div>
+              <div className="mt-4 border-t border-aether-border-strong/40 pt-6"><NavbarAuth user={user} layout="mobile" onNavigate={closeMobile} /></div>
             </Container>
           </motion.div>
         )}
