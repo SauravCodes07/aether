@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
@@ -9,12 +9,20 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
-import { DROPDOWN_VARIANTS } from "@/lib/motion";
-
-type UserNavMenuProps = {
-  user: User;
-  onNavigate?: () => void;
-};
+import {
+  DROPDOWN_VARIANTS,
+  MICRO_INTERACTION_VARIANTS,
+  MICRO_INTERACTION_TRANSITION,
+} from "@/lib/motion";
+import {
+  LayoutDashboard,
+  FolderOpen,
+  User2,
+  Settings,
+  CreditCard,
+  LogOut,
+  ChevronDown,
+} from "lucide-react";
 
 function getUserInitial(user: User): string {
   const name = user.user_metadata?.full_name as string | undefined;
@@ -28,24 +36,22 @@ function getUserLabel(user: User): string {
   return user.email?.split("@")[0] ?? "Account";
 }
 
-export function UserNavMenu({ user, onNavigate }: UserNavMenuProps) {
+function UserNavMenu({ user, onNavigate }: { user: User; onNavigate?: () => void }) {
   const [open, setOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   useEffect(() => {
     if (!open) return;
-
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setOpen(false);
       }
     };
-
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false);
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
     return () => {
@@ -59,24 +65,31 @@ export function UserNavMenu({ user, onNavigate }: UserNavMenuProps) {
     onNavigate?.();
   };
 
-  const handleSignOut = async (e: React.FormEvent) => {
-    e.preventDefault();
-    close();
-    
-    // Clear client session instantly for zero perceived lag
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    
-    // Refresh page or push to login
-    router.push(authRoutes.login);
-    router.refresh();
-  };
+  const handleSignOut = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (signingOut) return;
+      setSigningOut(true);
+      close();
+
+      try {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+        // Force full reload to clear all client state + cookies
+        window.location.href = authRoutes.login;
+      } catch {
+        setSigningOut(false);
+        window.location.href = authRoutes.login;
+      }
+    },
+    [signingOut],
+  );
 
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
 
   return (
     <div className="relative" ref={menuRef}>
-      <button
+      <motion.button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         className={cn(
@@ -84,6 +97,10 @@ export function UserNavMenu({ user, onNavigate }: UserNavMenuProps) {
           "hover:border-aether-border-strong hover:bg-aether-surface hover:shadow-aether-sm",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aether-accent/50",
         )}
+        variants={MICRO_INTERACTION_VARIANTS}
+        whileHover="hover"
+        whileTap="tap"
+        transition={MICRO_INTERACTION_TRANSITION}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label="Account menu"
@@ -100,33 +117,21 @@ export function UserNavMenu({ user, onNavigate }: UserNavMenuProps) {
               {getUserInitial(user)}
             </span>
           )}
-          {/* Glowing Green Presence indicator */}
           <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-aether-success opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-aether-success shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-aether-success opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-aether-success shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
           </span>
         </div>
         <span className="hidden max-w-[8rem] truncate text-aether-text font-medium sm:inline">
           {getUserLabel(user)}
         </span>
-        <svg
+        <ChevronDown
           className={cn(
             "h-3.5 w-3.5 text-aether-text-subtle transition-transform duration-300",
             open && "rotate-180",
           )}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
-          />
-        </svg>
-      </button>
+        />
+      </motion.button>
 
       <AnimatePresence>
         {open && (
@@ -136,18 +141,14 @@ export function UserNavMenu({ user, onNavigate }: UserNavMenuProps) {
             animate="visible"
             exit="exit"
             role="menu"
-            className="glass-floating absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-aether-lg border border-aether-border-strong/60 bg-aether-bg-elevated/95 shadow-aether-xl backdrop-blur-xl"
+            className="glass-floating absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-aether-lg border border-aether-border-strong/60 shadow-aether-xl"
           >
-            {/* Premium profile header */}
+            {/* Header */}
             <div className="border-b border-aether-border-strong/40 px-4 py-4">
               <div className="flex items-center gap-3">
                 <div className="relative flex h-9 w-9 shrink-0">
                   {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt={getUserLabel(user)}
-                      className="h-full w-full rounded-full object-cover border border-aether-border-strong"
-                    />
+                    <img src={avatarUrl} alt={getUserLabel(user)} className="h-full w-full rounded-full object-cover border border-aether-border-strong" />
                   ) : (
                     <span className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-aether-accent to-aether-cyan text-xs font-bold text-white select-none">
                       {getUserInitial(user)}
@@ -159,56 +160,43 @@ export function UserNavMenu({ user, onNavigate }: UserNavMenuProps) {
                   </span>
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-aether-text">
-                    {getUserLabel(user)}
-                  </p>
-                  <p className="truncate text-xs text-aether-text-subtle">
-                    {user.email}
-                  </p>
+                  <p className="truncate text-sm font-semibold text-aether-text">{getUserLabel(user)}</p>
+                  <p className="truncate text-xs text-aether-text-subtle">{user.email}</p>
                 </div>
               </div>
             </div>
 
-            {/* Menu items */}
+            {/* Items */}
             <div className="p-1.5">
-              <Link
-                href={authRoutes.dashboard}
-                role="menuitem"
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-aether-text-muted transition-colors hover:bg-aether-surface hover:text-aether-text"
-                onClick={close}
-                prefetch={true}
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-                </svg>
+              <Link href={authRoutes.dashboard} role="menuitem" className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-aether-text-muted transition-colors hover:bg-aether-surface hover:text-aether-text" onClick={close} prefetch={true}>
+                <LayoutDashboard className="h-4 w-4" />
                 Dashboard
               </Link>
-              <Link
-                href="/workspace"
-                role="menuitem"
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-aether-text-muted transition-colors hover:bg-aether-surface hover:text-aether-text"
-                onClick={close}
-                prefetch={true}
-              >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
-                </svg>
+              <Link href="/workspace" role="menuitem" className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-aether-text-muted transition-colors hover:bg-aether-surface hover:text-aether-text" onClick={close} prefetch={true}>
+                <FolderOpen className="h-4 w-4" />
                 Workspace
+              </Link>
+              <div className="my-1 border-t border-aether-border-strong/30" />
+              <Link href="/dashboard?tab=profile" role="menuitem" className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-aether-text-muted transition-colors hover:bg-aether-surface hover:text-aether-text" onClick={close} prefetch={true}>
+                <User2 className="h-4 w-4" />
+                Profile
+              </Link>
+              <Link href="/dashboard?tab=settings" role="menuitem" className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-aether-text-muted transition-colors hover:bg-aether-surface hover:text-aether-text" onClick={close} prefetch={true}>
+                <Settings className="h-4 w-4" />
+                Settings
+              </Link>
+              <Link href="/dashboard?tab=billing" role="menuitem" className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm text-aether-text-muted transition-colors hover:bg-aether-surface hover:text-aether-text" onClick={close} prefetch={true}>
+                <CreditCard className="h-4 w-4" />
+                Billing
               </Link>
             </div>
 
             {/* Sign out */}
             <div className="border-t border-aether-border-strong/40 p-1.5">
               <form onSubmit={handleSignOut}>
-                <button
-                  type="submit"
-                  role="menuitem"
-                  className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm text-aether-text-muted transition-colors hover:bg-aether-error/10 hover:text-aether-error cursor-pointer"
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-                  </svg>
-                  Sign out
+                <button type="submit" role="menuitem" disabled={signingOut} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm text-aether-text-muted transition-colors hover:bg-aether-error/10 hover:text-aether-error cursor-pointer disabled:opacity-50">
+                  <LogOut className="h-4 w-4" />
+                  {signingOut ? "Signing out..." : "Sign out"}
                 </button>
               </form>
             </div>
@@ -225,33 +213,29 @@ type NavbarAuthProps = {
   layout?: "desktop" | "mobile";
 };
 
-export function NavbarAuth({
-  user,
-  onNavigate,
-  layout = "desktop",
-}: NavbarAuthProps) {
+export function NavbarAuth({ user, onNavigate, layout = "desktop" }: NavbarAuthProps) {
   const router = useRouter();
 
-  const handleSignOut = async (e: React.FormEvent) => {
-    e.preventDefault();
-    onNavigate?.();
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push(authRoutes.login);
-    router.refresh();
-  };
+  const handleSignOut = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      onNavigate?.();
+      try {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+        window.location.href = authRoutes.login;
+      } catch {
+        window.location.href = authRoutes.login;
+      }
+    },
+    [onNavigate],
+  );
 
   if (user) {
     if (layout === "mobile") {
       return (
         <div className="flex flex-col gap-3">
-          <Button
-            variant="secondary"
-            href={authRoutes.dashboard}
-            className="w-full py-3"
-            onClick={onNavigate}
-            prefetch={true}
-          >
+          <Button variant="secondary" href={authRoutes.dashboard} className="w-full py-3" onClick={onNavigate} prefetch={true}>
             Dashboard
           </Button>
           <form onSubmit={handleSignOut}>
@@ -265,11 +249,7 @@ export function NavbarAuth({
 
     return (
       <div className="flex items-center gap-4">
-        <Link
-          href={authRoutes.dashboard}
-          className="text-sm font-medium text-aether-text-muted transition-colors hover:text-aether-text"
-          prefetch={true}
-        >
+        <Link href={authRoutes.dashboard} className="text-sm font-medium text-aether-text-muted transition-colors hover:text-aether-text" prefetch={true}>
           Dashboard
         </Link>
         <UserNavMenu user={user} onNavigate={onNavigate} />
@@ -280,21 +260,10 @@ export function NavbarAuth({
   if (layout === "mobile") {
     return (
       <div className="flex flex-col gap-3">
-        <Button
-          variant="ghost"
-          href={authRoutes.login}
-          className="w-full py-3"
-          onClick={onNavigate}
-          prefetch={true}
-        >
+        <Button variant="ghost" href={authRoutes.login} className="w-full py-3" onClick={onNavigate} prefetch={true}>
           Sign in
         </Button>
-        <Button
-          href={authRoutes.signup}
-          className="w-full py-3 bg-gradient-to-r from-aether-accent to-aether-cyan border-none text-white font-semibold shadow-aether-md"
-          onClick={onNavigate}
-          prefetch={true}
-        >
+        <Button href={authRoutes.signup} className="w-full py-3 bg-gradient-to-r from-aether-accent to-aether-cyan border-none text-white font-semibold shadow-aether-md" onClick={onNavigate} prefetch={true}>
           Create Account
         </Button>
       </div>
@@ -303,12 +272,16 @@ export function NavbarAuth({
 
   return (
     <div className="flex items-center gap-4">
-      <Button variant="ghost" size="sm" href={authRoutes.login} prefetch={true} className="font-medium hover:text-aether-text">
-        Sign in
-      </Button>
-      <Button size="sm" href={authRoutes.signup} prefetch={true} className="bg-gradient-to-r from-aether-accent to-aether-cyan border-none text-white font-semibold shadow-aether-sm hover:shadow-aether-md active:scale-95 transition-all duration-300">
-        Create Account
-      </Button>
+      <motion.div variants={MICRO_INTERACTION_VARIANTS} whileHover="hover" whileTap="tap" transition={MICRO_INTERACTION_TRANSITION}>
+        <Button variant="ghost" size="sm" href={authRoutes.login} prefetch={true} className="font-medium hover:text-aether-text">
+          Sign in
+        </Button>
+      </motion.div>
+      <motion.div variants={MICRO_INTERACTION_VARIANTS} whileHover="hover" whileTap="tap" transition={MICRO_INTERACTION_TRANSITION}>
+        <Button size="sm" href={authRoutes.signup} prefetch={true} className="bg-gradient-to-r from-aether-accent to-aether-cyan border-none text-white font-semibold shadow-aether-sm hover:shadow-aether-md transition-all duration-300">
+          Create Account
+        </Button>
+      </motion.div>
     </div>
   );
 }

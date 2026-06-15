@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
 import { Container } from "@/components/ui/container";
@@ -15,73 +16,89 @@ import {
   SPRING_PRESETS,
 } from "@/lib/motion";
 
+const SECTIONS = siteConfig.nav.map((item) => item.href.replace("#", ""));
+
 export function NavbarShell() {
   const { user } = useAuth();
+  const pathname = usePathname();
+  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("");
   const [hoveredSection, setHoveredSection] = useState("");
   const [scrollProgress, setScrollProgress] = useState(0);
   const [blurIntensity, setBlurIntensity] = useState(0);
-  const prevScrollY = useRef(0);
+  const isHomePage = pathname === "/";
 
   // ── Scroll Handler ───────────────────────────────────────────────
-  // Morphs navbar from transparent → glass on scroll with smooth easing
   useEffect(() => {
     const onScroll = () => {
       const scrollY = window.scrollY;
-      const totalScroll = document.documentElement.scrollHeight - window.innerHeight;
-
+      const totalScroll =
+        document.documentElement.scrollHeight - window.innerHeight;
       setScrolled(scrollY > 20);
-      prevScrollY.current = scrollY;
-
-      // Dynamic blur intensity — increases with scroll depth
       const maxScroll = 400;
       setBlurIntensity(Math.min(scrollY / maxScroll, 1));
-
       if (totalScroll > 0) {
         setScrollProgress(Math.min((scrollY / totalScroll) * 100, 100));
       }
     };
-
     setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // ── Section Observer ─────────────────────────────────────────────
-  // Tracks which landing section is in view for the active underline
+  // ── ScrollSpy via IntersectionObserver ───────────────────────────
   useEffect(() => {
-    if (typeof window === "undefined" || window.location.pathname !== "/") {
-      return;
-    }
-
-    const sectionIds = siteConfig.nav
-      .map((item) => item.href.replace("#", ""))
-      .filter(Boolean);
+    if (!isHomePage) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setActiveSection(`#${entry.target.id}`);
+        // Find the most-visible section (largest intersection ratio)
+        let bestEntry: IntersectionObserverEntry | null = null;
+        for (const entry of entries) {
+          if (!bestEntry || entry.intersectionRatio > bestEntry.intersectionRatio) {
+            bestEntry = entry;
           }
-        });
+        }
+        if (bestEntry && bestEntry.isIntersecting) {
+          setActiveSection(`#${bestEntry.target.id}`);
+        }
       },
       {
         root: null,
-        rootMargin: "-30% 0px -60% 0px",
-        threshold: 0,
+        rootMargin: "-10% 0px -70% 0px",
+        threshold: [0, 0.1, 0.2, 0.3, 0.5, 0.7],
       },
     );
 
-    sectionIds.forEach((id) => {
+    SECTIONS.forEach((id) => {
       const el = document.getElementById(id);
       if (el) observer.observe(el);
     });
 
     return () => observer.disconnect();
-  }, []);
+  }, [isHomePage]);
+
+  // On route change, clear active section if not homepage
+  useEffect(() => {
+    if (!isHomePage) {
+      setActiveSection("");
+    }
+  }, [pathname, isHomePage]);
+
+  // Restore active section after navigating to homepage
+  useEffect(() => {
+    if (isHomePage && window.location.hash) {
+      setActiveSection(window.location.hash);
+      setTimeout(() => {
+        const el = document.querySelector(window.location.hash);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
+    }
+  }, [isHomePage]);
 
   // ── Body Scroll Lock ─────────────────────────────────────────────
   useEffect(() => {
@@ -93,6 +110,32 @@ export function NavbarShell() {
 
   const closeMobile = useCallback(() => setMobileOpen(false), []);
 
+  // Handle nav link clicks — cross-route navigation to homepage sections
+  const handleNavClick = useCallback(
+    (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+      closeMobile();
+      if (!href.startsWith("#")) return;
+
+      if (!isHomePage) {
+        e.preventDefault();
+        // Navigate to homepage with the hash
+        router.push(`/${href}`);
+      } else {
+        // Already on homepage — smooth scroll
+        e.preventDefault();
+        const id = href.replace("#", "");
+        const el = document.getElementById(id);
+        if (el) {
+          const offset = 90; // navbar height
+          const top = el.getBoundingClientRect().top + window.scrollY - offset;
+          window.scrollTo({ top, behavior: "smooth" });
+        }
+        setActiveSection(href);
+      }
+    },
+    [isHomePage, router, closeMobile],
+  );
+
   return (
     <header
       className={cn(
@@ -102,9 +145,15 @@ export function NavbarShell() {
           : "bg-transparent border-b border-transparent",
       )}
       style={{
-        backgroundColor: scrolled ? `rgba(7, 7, 8, ${0.6 + blurIntensity * 0.25})` : "transparent",
-        backdropFilter: scrolled ? `blur(${12 + blurIntensity * 12}px) saturate(${160 + blurIntensity * 40}%)` : "none",
-        WebkitBackdropFilter: scrolled ? `blur(${12 + blurIntensity * 12}px) saturate(${160 + blurIntensity * 40}%)` : "none",
+        backgroundColor: scrolled
+          ? `rgba(7, 7, 8, ${0.6 + blurIntensity * 0.25})`
+          : "transparent",
+        backdropFilter: scrolled
+          ? `blur(${12 + blurIntensity * 12}px) saturate(${160 + blurIntensity * 40}%)`
+          : "none",
+        WebkitBackdropFilter: scrolled
+          ? `blur(${12 + blurIntensity * 12}px) saturate(${160 + blurIntensity * 40}%)`
+          : "none",
       }}
     >
       {/* Scroll Progress Bar */}
@@ -118,10 +167,9 @@ export function NavbarShell() {
         as="nav"
         className="flex h-16 md:h-20 items-center justify-between gap-8 transition-all duration-500"
       >
-        {/* Logo — increased prominence: 40px mobile, 56px desktop */}
         <Logo variant="nav" />
 
-        {/* Desktop Navigation Links — centered hierarchy */}
+        {/* Desktop Navigation Links */}
         <ul className="hidden items-center gap-1 md:flex h-full">
           {siteConfig.nav.map((item) => {
             const isActive = activeSection === item.href;
@@ -131,6 +179,7 @@ export function NavbarShell() {
               <li key={item.href} className="relative flex h-full items-center">
                 <a
                   href={item.href}
+                  onClick={(e) => handleNavClick(e, item.href)}
                   onMouseEnter={() => setHoveredSection(item.href)}
                   onMouseLeave={() => setHoveredSection("")}
                   className={cn(
@@ -139,10 +188,11 @@ export function NavbarShell() {
                       ? "text-aether-text"
                       : "text-aether-text-muted hover:text-aether-text",
                   )}
+                  aria-current={isActive ? "true" : undefined}
                 >
                   {item.label}
 
-                  {/* Hover background pill — subtle rounded highlight behind text */}
+                  {/* Hover pill */}
                   {isHovered && !isActive && (
                     <motion.span
                       layoutId="nav-hover-bg"
@@ -154,7 +204,7 @@ export function NavbarShell() {
                     />
                   )}
 
-                  {/* Active section underline — animated via layoutId */}
+                  {/* Active pill + underline */}
                   {isActive && (
                     <motion.span
                       layoutId="nav-active-line"
@@ -193,12 +243,7 @@ export function NavbarShell() {
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           ) : (
             <svg
@@ -207,18 +252,13 @@ export function NavbarShell() {
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           )}
         </button>
       </Container>
 
-      {/* Mobile Drawer Menu */}
+      {/* Mobile Drawer */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
@@ -236,17 +276,13 @@ export function NavbarShell() {
                   variants={MOBILE_NAV_ITEM_VARIANTS}
                   custom={idx * 0.05}
                   className="rounded-lg px-4 py-3 text-sm font-medium text-aether-text-muted transition-colors hover:bg-aether-surface hover:text-aether-text"
-                  onClick={closeMobile}
+                  onClick={(e) => handleNavClick(e, item.href)}
                 >
                   {item.label}
                 </motion.a>
               ))}
               <div className="mt-4 border-t border-aether-border-strong/40 pt-6">
-                <NavbarAuth
-                  user={user}
-                  layout="mobile"
-                  onNavigate={closeMobile}
-                />
+                <NavbarAuth user={user} layout="mobile" onNavigate={closeMobile} />
               </div>
             </Container>
           </motion.div>

@@ -30,9 +30,11 @@ export const EASE_PRESETS = {
   rapid: { type: "tween" as const, ease: [0.16, 1, 0.3, 1] as const, duration: 0.35 },
   slow: { type: "tween" as const, ease: [0.16, 1, 0.3, 1] as const, duration: 1.2 },
   elegant: { type: "tween" as const, ease: [0.22, 1, 0.36, 1] as const, duration: 0.8 },
-  easeInOut: { type: "tween" as const, ease: "easeInOut" as const, duration: 0.25 },
+  easeInOut: { type: "tween" as const, ease: [0.42, 0, 0.58, 1] as const, duration: 0.25 },
+  easeIn: { type: "tween" as const, ease: [0.4, 0, 1, 1] as const, duration: 0.2 },
   ambient: { type: "tween" as const, ease: [0.45, 0, 0.55, 1] as const, duration: 8 },
   ultraSlow: { type: "tween" as const, ease: [0.16, 1, 0.3, 1] as const, duration: 2.5 },
+  linear: { type: "tween" as const, ease: [0, 0, 1, 1] as const, duration: 1 },
 } as const;
 
 /* ─── Standard Durations ───────────────────────────────────────────── */
@@ -49,28 +51,6 @@ export const DURATION = {
 
 /* ─── Stagger Delays ───────────────────────────────────────────────── */
 
-/* ─── Telemetry & Data Streams ────────────────────────────────────── */
-
-export const TELEMETRY_STREAM_VARIANTS = {
-  hidden: { opacity: 0, x: -10 },
-  visible: { 
-    opacity: 1, 
-    x: 0,
-    transition: { ...SPRING_PRESETS.telemetry }
-  },
-};
-
-export const DATA_FLOW_VARIANTS = {
-  animate: {
-    strokeDashoffset: [0, -20],
-    transition: {
-      duration: 1,
-      repeat: Infinity,
-      ease: "linear" as const,
-    },
-  },
-};
-
 export const STAGGER = {
   fast: 0.05,
   default: 0.08,
@@ -78,18 +58,38 @@ export const STAGGER = {
   section: 0.15,
 } as const;
 
-/* ─── Hover & Tap Presets ──────────────────────────────────────────── */
+/* ─── Micro-Interactions: Phase 1 Spec ─────────────────────────────── */
+/*
+ * Phase 1 Spec:
+ * - Hover: scale 1.02 (spring)
+ * - Click/Tap: scale 0.98 (spring)
+ */
+export const MICRO_INTERACTION_VARIANTS = {
+  hover: { scale: 1.02 },
+  tap: { scale: 0.98 },
+};
+export const MICRO_INTERACTION_TRANSITION = SPRING_PRESETS.snappy;
+export const MICRO_INTERACTION_SCALE = { HOVER: 1.02, TAP: 0.98 } as const;
 
-export const HOVER_TAP_VARIANTS = {
+export const HOVER_TAP_VARIANTS = MICRO_INTERACTION_VARIANTS;
+export const HOVER_TAP_TRANSITION = MICRO_INTERACTION_TRANSITION;
+export const SCALE_HOVER_VARIANTS = {
   hover: { scale: 1.03 },
   tap: { scale: 0.95 },
 };
 
-export const HOVER_TAP_TRANSITION = SPRING_PRESETS.snappy;
+/* ─── Telemetry & Data Streams ────────────────────────────────────── */
 
-export const SCALE_HOVER_VARIANTS = {
-  hover: { scale: 1.03 },
-  tap: { scale: 0.95 },
+export const TELEMETRY_STREAM_VARIANTS = {
+  hidden: { opacity: 0, x: -10 },
+  visible: { opacity: 1, x: 0, transition: { ...SPRING_PRESETS.telemetry } },
+};
+
+export const DATA_FLOW_VARIANTS = {
+  animate: {
+    strokeDashoffset: [0, -20],
+    transition: { duration: 1, repeat: Infinity, ease: EASE_PRESETS.linear.ease },
+  },
 };
 
 /* ─── Floating Ambient ─────────────────────────────────────────────── */
@@ -97,25 +97,14 @@ export const SCALE_HOVER_VARIANTS = {
 export const FLOATING_VARIANTS = {
   animate: (delay = 0) => ({
     y: [0, -8, 0, 6, 0],
-    transition: {
-      ...SPRING_PRESETS.floating,
-      repeat: Infinity,
-      repeatType: "mirror" as const,
-      delay,
-      duration: 6,
-    },
+    transition: { ...SPRING_PRESETS.floating, repeat: Infinity, repeatType: "mirror" as const, delay, duration: 6 },
   }),
 };
 
 export const FLOATING_SLOW = {
   animate: {
     y: [0, -12, 0, 8, 0],
-    transition: {
-      duration: 10,
-      ease: "easeInOut" as const,
-      repeat: Infinity,
-      repeatType: "mirror" as const,
-    },
+    transition: { duration: 10, ease: EASE_PRESETS.easeInOut.ease, repeat: Infinity, repeatType: "mirror" as const },
   },
 };
 
@@ -123,13 +112,7 @@ export const FLOATING_SLOW = {
 
 export const PERSPECTIVE_CONTAINER_VARIANTS = {
   hidden: { opacity: 0, rotateX: 20, y: 40, scale: 0.95 },
-  visible: {
-    opacity: 1,
-    rotateX: 12,
-    y: 0,
-    scale: 1,
-    transition: { ...SPRING_PRESETS.cinematic, delay: 0.2 },
-  },
+  visible: { opacity: 1, rotateX: 12, y: 0, scale: 1, transition: { ...SPRING_PRESETS.cinematic, delay: 0.2 } },
 };
 
 export const PARALLAX_LAYER_VARIANTS = {
@@ -149,20 +132,12 @@ export const SECTION_EXIT_VARIANTS = {
 
 export const SLIDE_IN_LEFT_VARIANTS = {
   hidden: { opacity: 0, x: -32 },
-  visible: (delay = 0) => ({
-    opacity: 1,
-    x: 0,
-    transition: { ...SPRING_PRESETS.default, delay },
-  }),
+  visible: (delay = 0) => ({ opacity: 1, x: 0, transition: { ...SPRING_PRESETS.default, delay } }),
 };
 
 export const SLIDE_IN_RIGHT_VARIANTS = {
   hidden: { opacity: 0, x: 32 },
-  visible: (delay = 0) => ({
-    opacity: 1,
-    x: 0,
-    transition: { ...SPRING_PRESETS.default, delay },
-  }),
+  visible: (delay = 0) => ({ opacity: 1, x: 0, transition: { ...SPRING_PRESETS.default, delay } }),
 };
 
 export const SLIDE_DOWN_VARIANTS = {
@@ -175,38 +150,22 @@ export const SLIDE_DOWN_VARIANTS = {
 
 export const FADE_UP_VARIANTS = {
   hidden: { opacity: 0, y: 24 },
-  visible: (delay = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: { ...SPRING_PRESETS.default, delay },
-  }),
+  visible: (delay = 0) => ({ opacity: 1, y: 0, transition: { ...SPRING_PRESETS.default, delay } }),
 };
 
 export const FADE_IN_VARIANTS = {
   hidden: { opacity: 0 },
-  visible: (delay = 0) => ({
-    opacity: 1,
-    transition: { ...EASE_PRESETS.rapid, delay },
-  }),
+  visible: (delay = 0) => ({ opacity: 1, transition: { ...EASE_PRESETS.rapid, delay } }),
 };
 
 export const SCALE_UP_VARIANTS = {
   hidden: { opacity: 0, scale: 0.95 },
-  visible: (delay = 0) => ({
-    opacity: 1,
-    scale: 1,
-    transition: { ...SPRING_PRESETS.default, delay },
-  }),
+  visible: (delay = 0) => ({ opacity: 1, scale: 1, transition: { ...SPRING_PRESETS.default, delay } }),
 };
 
 export const BLUR_FADE_VARIANTS = {
   hidden: { opacity: 0, y: 16, filter: "blur(8px)" },
-  visible: (delay = 0) => ({
-    opacity: 1,
-    y: 0,
-    filter: "blur(0px)",
-    transition: { ...EASE_PRESETS.elegant, delay },
-  }),
+  visible: (delay = 0) => ({ opacity: 1, y: 0, filter: "blur(0px)", transition: { ...EASE_PRESETS.elegant, delay } }),
 };
 
 /* ─── Stagger ──────────────────────────────────────────────────────── */
@@ -236,11 +195,7 @@ export const MOBILE_DRAWER_VARIANTS = {
 
 export const MOBILE_NAV_ITEM_VARIANTS = {
   hidden: { opacity: 0, x: -10 },
-  visible: (delay = 0) => ({
-    opacity: 1,
-    x: 0,
-    transition: { ...SPRING_PRESETS.default, delay },
-  }),
+  visible: (delay = 0) => ({ opacity: 1, x: 0, transition: { ...SPRING_PRESETS.default, delay } }),
 };
 
 /* ─── Nav ──────────────────────────────────────────────────────────── */
@@ -257,11 +212,7 @@ export const NAV_LINK_HOVER = {
   hover: { color: "var(--aether-text)" },
 };
 
-export const NAV_LINK_TRANSITION = {
-  type: "tween" as const,
-  ease: "easeOut" as const,
-  duration: 0.2,
-};
+export const NAV_LINK_TRANSITION = { type: "tween" as const, ease: EASE_PRESETS.easeIn.ease, duration: 0.2 };
 
 /* ─── Dropdown ─────────────────────────────────────────────────────── */
 
@@ -273,32 +224,20 @@ export const DROPDOWN_VARIANTS = {
 
 /* ─── Viewport ─────────────────────────────────────────────────────── */
 
-export const VIEWPORT_ONCE = {
-  once: true,
-  margin: "-80px",
-} as const;
-
-export const VIEWPORT_REPEAT = {
-  once: false,
-  margin: "-80px",
-} as const;
+export const VIEWPORT_ONCE = { once: true, margin: "-80px" } as const;
+export const VIEWPORT_REPEAT = { once: false, margin: "-80px" } as const;
 
 /* ─── Card / Panel ─────────────────────────────────────────────────── */
 
 export const CARD_HOVER_VARIANTS = {
   rest: { scale: 1, y: 0 },
-  hover: { scale: 1.02, y: -4, transition: SPRING_PRESETS.snappy },
+  hover: { scale: MICRO_INTERACTION_SCALE.HOVER, y: -4, transition: SPRING_PRESETS.snappy },
 };
 
 export const PANEL_FLOAT_VARIANTS = {
   animate: (i = 0) => ({
     y: [0, -6, 0, 4, 0],
-    transition: {
-      duration: 5 + i,
-      ease: "easeInOut" as const,
-      repeat: Infinity,
-      repeatType: "mirror" as const,
-    },
+    transition: { duration: 5 + i, ease: EASE_PRESETS.easeInOut.ease, repeat: Infinity, repeatType: "mirror" as const },
   }),
 };
 
@@ -306,12 +245,96 @@ export const PANEL_FLOAT_VARIANTS = {
 
 export const SECTION_REVEAL_VARIANTS = {
   hidden: { opacity: 0, y: 40 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      ...SPRING_PRESETS.gentle,
-      staggerChildren: 0.1,
-    },
-  },
+  visible: { opacity: 1, y: 0, transition: { ...SPRING_PRESETS.gentle, staggerChildren: 0.1 } },
+};
+
+/* ─── Page Transitions ─────────────────────────────────────────────── */
+
+export const PAGE_TRANSITION_VARIANTS = {
+  hidden: { opacity: 0, y: 8, filter: "blur(4px)" },
+  visible: { opacity: 1, y: 0, filter: "blur(0px)", transition: { type: "spring" as const, stiffness: 80, damping: 20, duration: 0.5 } },
+  exit: { opacity: 0, y: -8, filter: "blur(4px)", transition: { duration: 0.25, ease: EASE_PRESETS.easeIn.ease } },
+};
+
+/* ─── Command Palette ─────────────────────────────────────────────── */
+
+export const COMMAND_PALETTE_VARIANTS = {
+  hidden: { opacity: 0, scale: 0.96, y: -12 },
+  visible: { opacity: 1, scale: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 25, mass: 0.8 } },
+  exit: { opacity: 0, scale: 0.96, y: -12, transition: { duration: 0.15, ease: EASE_PRESETS.easeIn.ease } },
+};
+
+export const COMMAND_ITEM_VARIANTS = {
+  hidden: { opacity: 0, x: -12 },
+  visible: (delay = 0) => ({ opacity: 1, x: 0, transition: { ...SPRING_PRESETS.default, delay } }),
+  exit: { opacity: 0, x: -12 },
+};
+
+/* ─── File Tree ────────────────────────────────────────────────────── */
+
+export const FILE_TREE_ITEM_VARIANTS = {
+  hidden: { opacity: 0, height: 0, marginTop: 0 },
+  visible: { opacity: 1, height: "auto", marginTop: 2, transition: { ...SPRING_PRESETS.gentle, duration: 0.3 } },
+  exit: { opacity: 0, height: 0, marginTop: 0, transition: { duration: 0.2, ease: EASE_PRESETS.easeIn.ease } },
+};
+
+/* ─── Resizable Panels ─────────────────────────────────────────────── */
+
+export const RESIZE_HANDLE_VARIANTS = {
+  rest: { opacity: 0, scaleX: 0.5 },
+  hover: { opacity: 1, scaleX: 1, transition: SPRING_PRESETS.snappy },
+};
+
+/* ─── AI Streaming ─────────────────────────────────────────────────── */
+
+export const AI_STREAMING_CURSOR_VARIANTS = {
+  animate: { opacity: [1, 0.3, 1], transition: { duration: 1.2, repeat: Infinity, ease: EASE_PRESETS.easeInOut.ease } },
+};
+
+export const AI_MESSAGE_VARIANTS = {
+  hidden: { opacity: 0, y: 8, scale: 0.98 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { ...SPRING_PRESETS.gentle } },
+};
+
+/* ─── Canvas Node ─────────────────────────────────────────────────── */
+
+export const CANVAS_NODE_VARIANTS = {
+  hidden: { opacity: 0, scale: 0.8, y: 16 },
+  visible: (delay = 0) => ({ opacity: 1, scale: 1, y: 0, transition: { ...SPRING_PRESETS.bouncy, delay } }),
+  exit: { opacity: 0, scale: 0.8, y: 16, transition: { duration: 0.2 } },
+};
+
+export const CANVAS_EDGE_VARIANTS = {
+  hidden: { pathLength: 0, opacity: 0 },
+  visible: { pathLength: 1, opacity: 1, transition: { duration: 0.8, ease: EASE_PRESETS.smooth.ease } },
+};
+
+/* ─── Multiplayer Cursor ───────────────────────────────────────────── */
+
+export const REMOTE_CURSOR_VARIANTS = {
+  initial: { opacity: 0, scale: 0.5 },
+  animate: { opacity: 1, scale: 1, transition: SPRING_PRESETS.bouncy },
+  exit: { opacity: 0, scale: 0.5, transition: { duration: 0.2 } },
+};
+
+/* ─── Toast / Notification ─────────────────────────────────────────── */
+
+export const TOAST_VARIANTS = {
+  hidden: { opacity: 0, y: 16, scale: 0.96 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: SPRING_PRESETS.bouncy },
+  exit: { opacity: 0, y: -8, scale: 0.96, transition: { duration: 0.2, ease: EASE_PRESETS.easeIn.ease } },
+};
+
+/* ─── Modal / Overlay ──────────────────────────────────────────────── */
+
+export const MODAL_OVERLAY_VARIANTS = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.2 } },
+  exit: { opacity: 0, transition: { duration: 0.15 } },
+};
+
+export const MODAL_CONTENT_VARIANTS = {
+  hidden: { opacity: 0, scale: 0.96, y: 8 },
+  visible: { opacity: 1, scale: 1, y: 0, transition: SPRING_PRESETS.navbar },
+  exit: { opacity: 0, scale: 0.96, y: 8, transition: { duration: 0.15, ease: EASE_PRESETS.easeIn.ease } },
 };

@@ -1,22 +1,96 @@
 "use client";
 
+import Link from "next/link";
 import { siteConfig } from "@/config/site";
 import { Container } from "@/components/ui/container";
 import { Logo } from "@/components/ui/logo";
 import { motion } from "framer-motion";
-import { STAGGER_CONTAINER_VARIANTS, STAGGER_ITEM_VARIANTS } from "@/lib/motion";
+import {
+  STAGGER_CONTAINER_VARIANTS,
+  STAGGER_ITEM_VARIANTS,
+  MICRO_INTERACTION_VARIANTS,
+  MICRO_INTERACTION_TRANSITION,
+} from "@/lib/motion";
+import { ArrowUpRight } from "lucide-react";
 
 const footerGroups = [
-  { title: "Product", links: siteConfig.footer.product },
-  { title: "Resources", links: siteConfig.footer.resources },
-  { title: "Company", links: siteConfig.footer.company },
-  { title: "Legal", links: siteConfig.footer.legal },
+  {
+    title: "PRODUCT",
+    links: [
+      { label: "Workspace", href: "/workspace" },
+      { label: "Features", href: "/#features" },
+      { label: "Integrations", href: "/#integrations" },
+      { label: "Pricing", href: "/#pricing" },
+      { label: "Changelog", href: "#" },
+      { label: "Roadmap", href: "#" },
+    ],
+  },
+  {
+    title: "RESOURCES",
+    links: [
+      { label: "Documentation", href: "/docs" },
+      { label: "API Reference", href: "#" },
+      { label: "FAQ", href: "/#faq" },
+      { label: "Community", href: "#" },
+      { label: "Help Center", href: "#" },
+    ],
+  },
+  {
+    title: "COMPANY",
+    links: [
+      { label: "About", href: "#" },
+      { label: "Blog", href: "#" },
+      { label: "Careers", href: "#" },
+      { label: "Contact", href: "#" },
+      { label: "Status", href: "#" },
+    ],
+  },
+  {
+    title: "LEGAL",
+    links: [
+      { label: "Privacy Policy", href: "#" },
+      { label: "Terms of Service", href: "#" },
+      { label: "Cookie Policy", href: "#" },
+      { label: "GDPR", href: "#" },
+    ],
+  },
 ];
+
+function FooterLink({ href, label, external }: { href: string; label: string; external?: boolean }) {
+  const isExternal = external ?? (href.startsWith("http") && !href.includes("localhost"));
+
+  return (
+    <motion.li
+      variants={MICRO_INTERACTION_VARIANTS}
+      whileHover="hover"
+      whileTap="tap"
+      transition={MICRO_INTERACTION_TRANSITION}
+    >
+      <Link
+        href={href}
+        className="group relative inline-flex items-center gap-1 text-sm text-aether-text-muted transition-all duration-300 hover:text-aether-text hover:translate-x-1"
+        target={isExternal ? "_blank" : undefined}
+        rel={isExternal ? "noopener noreferrer" : undefined}
+      >
+        <span className="relative">
+          {label}
+          <span className="absolute -bottom-0.5 left-0 h-[1px] w-0 bg-gradient-to-r from-aether-accent to-aether-cyan transition-all duration-300 group-hover:w-full" />
+        </span>
+        {isExternal && (
+          <ArrowUpRight className="h-3 w-3 opacity-0 -translate-y-1 translate-x-1 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0 group-hover:translate-x-0" />
+        )}
+      </Link>
+    </motion.li>
+  );
+}
 
 export function Footer() {
   return (
-    <footer className="border-t border-aether-border bg-aether-bg-elevated/50 backdrop-blur-md">
-      <Container className="py-16">
+    <footer className="relative border-t border-aether-border bg-aether-bg-elevated/30 backdrop-blur-md">
+      {/* Subtle top glow */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-aether-accent/20 to-transparent" />
+
+      <Container className="py-16 lg:py-20">
         <motion.div
           variants={STAGGER_CONTAINER_VARIANTS}
           initial="hidden"
@@ -24,52 +98,58 @@ export function Footer() {
           viewport={{ once: true, margin: "-50px" }}
           className="grid gap-12 sm:grid-cols-2 lg:grid-cols-5"
         >
+          {/* Brand column */}
           <motion.div variants={STAGGER_ITEM_VARIANTS} className="sm:col-span-2 lg:col-span-1">
-            <Logo variant="footer" />
+            <div className="transition-all duration-300 hover:opacity-80">
+              <Logo variant="footer" />
+            </div>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-aether-text-muted">
               {siteConfig.description}
             </p>
+            <div className="mt-4 flex items-center gap-1">
+              <span className="flex h-2 w-2 rounded-full bg-aether-success shadow-[0_0_6px_rgba(34,197,94,0.5)]" />
+              <span className="text-xs text-aether-text-subtle">All systems operational</span>
+            </div>
           </motion.div>
 
+          {/* Link groups */}
           {footerGroups.map((group) => (
             <motion.div key={group.title} variants={STAGGER_ITEM_VARIANTS}>
-              <h3 className="label-sm mb-4">{group.title}</h3>
-              <ul className="space-y-3">
+              <h3 className="mb-4 text-[11px] font-semibold tracking-[0.2em] text-aether-text-subtle uppercase">
+                <span className="relative">
+                  {group.title}
+                  <span className="absolute -bottom-1 left-0 h-[1px] w-6 bg-gradient-to-r from-aether-accent/40 to-transparent transition-all duration-300 group-hover:w-full" />
+                </span>
+              </h3>
+              <ul className="space-y-2.5">
                 {group.links.map((link) => (
-                  <li key={link.label}>
-                    <a
-                      href={link.href}
-                      className="text-sm text-aether-text-muted transition-colors duration-200 hover:text-aether-text"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
+                  <FooterLink key={link.label} href={link.href} label={link.label} />
                 ))}
               </ul>
             </motion.div>
           ))}
         </motion.div>
 
-        <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-aether-border pt-8 sm:flex-row">
+        {/* Bottom bar */}
+        <div className="mt-16 flex flex-col items-center justify-between gap-4 border-t border-aether-border pt-8 sm:flex-row">
           <p className="text-xs text-aether-text-subtle">
-            &copy; {new Date().getFullYear()} {siteConfig.name}. All rights
-            reserved.
+            &copy; {new Date().getFullYear()} {siteConfig.name}. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
             <a
               href={siteConfig.links.github}
-              className="text-xs text-aether-text-subtle transition-colors duration-200 hover:text-aether-text-muted"
+              className="text-xs text-aether-text-subtle transition-all duration-200 hover:text-aether-text hover:underline underline-offset-4"
               target="_blank"
               rel="noopener noreferrer"
             >
               GitHub
             </a>
-            <a
-              href={siteConfig.links.docs}
-              className="text-xs text-aether-text-subtle transition-colors duration-200 hover:text-aether-text-muted"
+            <Link
+              href="/docs"
+              className="text-xs text-aether-text-subtle transition-all duration-200 hover:text-aether-text hover:underline underline-offset-4"
             >
               Documentation
-            </a>
+            </Link>
           </div>
         </div>
       </Container>
