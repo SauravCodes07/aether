@@ -2,47 +2,41 @@
 
 import { useRef, useEffect, useCallback } from "react";
 import {
-  LANDMARK_NAMES,
   HAND_CONNECTIONS,
   FINGER_TIPS,
   type Landmark,
   type GestureType,
+  type GestureInteraction,
 } from "@/lib/hand-tracking";
 
 // ── Particle System ─────────────────────────────────────────────────────────
 
 type Particle = {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  life: number;
-  maxLife: number;
-  size: number;
-  hue: number;
+  x: number; y: number; vx: number; vy: number;
+  life: number; maxLife: number; size: number; hue: number;
 };
 
-// ── Visualization Config ────────────────────────────────────────────────────
+// ── Colors ──────────────────────────────────────────────────────────────────
 
-const COLORS = {
-  primary: { h: 170, s: 80, l: 55 },      // Cyan
-  secondary: { h: 270, s: 70, l: 60 },     // Purple
-  accent: { h: 200, s: 90, l: 60 },        // Bright cyan
-  palm: { h: 220, s: 60, l: 50 },          // Blue-violet
-  glow: { h: 190, s: 80, l: 50 },          // Glow
-  pinch: { h: 20, s: 90, l: 55 },          // Orange
-  grab: { h: 40, s: 85, l: 50 },           // Amber
-};
+const C = {
+  cyan: [170, 80, 55],
+  purple: [270, 70, 60],
+  bright: [200, 90, 60],
+  palm: [220, 60, 50],
+  glow: [190, 80, 50],
+  pinch: [20, 90, 55],
+  grab: [40, 85, 50],
+  spread: [280, 75, 55],
+} as const;
 
-function hsl(h: number, s: number, l: number, a = 1): string {
-  return `hsla(${h}, ${s}%, ${l}%, ${a})`;
-}
+const hsl = (h: number, s: number, l: number, a = 1) => `hsla(${h},${s}%,${l}%,${a})`;
 
-// ── Main Renderer ───────────────────────────────────────────────────────────
+// ── Props ───────────────────────────────────────────────────────────────────
 
 export type HandVisualizerProps = {
   landmarks: Landmark[][] | null;
   gesture: GestureType;
+  interaction: GestureInteraction;
   confidence: number;
   handedness: string | null;
   width: number;
@@ -52,9 +46,12 @@ export type HandVisualizerProps = {
   showTrails?: boolean;
 };
 
+// ── Main Component ──────────────────────────────────────────────────────────
+
 export default function HandVisualizer({
   landmarks,
   gesture,
+  interaction,
   confidence,
   handedness,
   width,
@@ -66,70 +63,69 @@ export default function HandVisualizer({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<Particle[]>([]);
   const trailsRef = useRef<Map<number, Array<{ x: number; y: number; t: number }>>>(new Map());
-  const prevLandmarksRef = useRef<Landmark[][] | null>(null);
+  const burstRef = useRef<number>(0);
+  const prevGestureRef = useRef<GestureType>("none");
   const timeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   const lastTimeRef = useRef(performance.now());
 
-  // ── Particle Management ──────────────────────────────────────────────────
+  // Detect gesture change for particle burst
+  if (gesture !== prevGestureRef.current) {
+    if (gesture !== "none" && landmarks?.[0]) {
+      burstRef.current = 20; // Spawn 20 particles on gesture change
+      for (const tip of FINGER_TIPS) {
+        const lm = landmarks[0][tip];
+        if (lm) spawnParticles(lm.x, lm.y, 4, getGestureHue(gesture));
+      }
+    }
+    prevGestureRef.current = gesture;
+  }
 
-  const spawnParticles = useCallback((x: number, y: number, count: number, hue: number) => {
+  function getGestureHue(g: GestureType): number {
+    if (g === "pinch") return C.pinch[0];
+    if (g === "grab") return C.grab[0];
+    if (g === "finger_spread") return C.spread[0];
+    return C.bright[0];
+  }
+
+  function spawnParticles(x: number, y: number, count: number, hue: number) {
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
-      const speed = 0.0005 + Math.random() * 0.002;
+      const speed = 0.001 + Math.random() * 0.004;
       particlesRef.current.push({
-        x, y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        life: 0,
-        maxLife: 0.4 + Math.random() * 0.6,
-        size: 1 + Math.random() * 3,
-        hue,
+        x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+        life: 0, maxLife: 0.3 + Math.random() * 0.5, size: 2 + Math.random() * 4, hue,
       });
     }
-  }, []);
+  }
 
-  const updateParticles = useCallback((dt: number) => {
+  function updateParticles(dt: number) {
     particlesRef.current = particlesRef.current.filter(p => {
-      p.life += dt;
-      p.x += p.vx;
-      p.y += p.vy;
-      p.vx *= 0.98;
-      p.vy *= 0.98;
+      p.life += dt; p.x += p.vx; p.y += p.vy; p.vx *= 0.96; p.vy *= 0.96;
       return p.life < p.maxLife;
     });
-  }, []);
+  }
 
-  // ── Trail Management ─────────────────────────────────────────────────────
-
-  const updateTrails = useCallback((hands: Landmark[][]) => {
+  function updateTrails(hands: Landmark[][]) {
     const trails = trailsRef.current;
     const now = performance.now();
-
     for (let hi = 0; hi < hands.length; hi++) {
-      const hand = hands[hi];
-      const tipIndices = [4, 8, 12, 16, 20];
-      for (const tip of tipIndices) {
+      for (const tip of FINGER_TIPS) {
         const key = hi * 100 + tip;
-        const lm = hand[tip];
+        const lm = hands[hi][tip];
         if (!lm) continue;
         let trail = trails.get(key);
         if (!trail) { trail = []; trails.set(key, trail); }
         trail.push({ x: lm.x, y: lm.y, t: now });
-        // Keep last 200ms
-        while (trail.length > 0 && now - trail[0].t > 200) trail.shift();
+        while (trail.length > 0 && now - trail[0].t > 250) trail.shift();
       }
     }
-
-    // Clean old trails
     for (const [key, trail] of trails) {
-      if (trail.length === 0 || now - trail[trail.length - 1].t > 500) {
-        trails.delete(key);
-      }
+      if (!trail.length || now - trail[trail.length - 1].t > 600) trails.delete(key);
     }
-  }, []);
+  }
 
-  // ── Main Render Loop ─────────────────────────────────────────────────────
+  // ── Render Loop ──────────────────────────────────────────────────────────
 
   const render = useCallback(() => {
     const canvas = canvasRef.current;
@@ -142,376 +138,279 @@ export default function HandVisualizer({
     lastTimeRef.current = now;
     timeRef.current += dt;
 
-    // Update particles
     updateParticles(dt);
-
-    // Clear canvas
     ctx.clearRect(0, 0, width, height);
     ctx.save();
     ctx.scale(width, height);
 
     if (landmarks && landmarks.length > 0) {
-      // Update trails
       if (showTrails) updateTrails(landmarks);
+      if (showTrails) drawTrails(ctx, trailsRef.current);
 
-      // Draw trails first (behind everything)
-      if (showTrails) {
-        drawTrails(ctx, trailsRef.current);
-      }
-
-      // Draw each hand
       for (let hi = 0; hi < landmarks.length; hi++) {
-        const hand = landmarks[hi];
-        drawHand(ctx, hand, gesture, confidence, timeRef.current, hi === 0);
+        drawHand(ctx, landmarks[hi], gesture, confidence, timeRef.current, hi === 0);
 
-        // Spawn fingertip particles
-        if (showParticles && gesture !== "none") {
-          const hue = gesture === "pinch" ? COLORS.pinch.h : gesture === "grab" ? COLORS.grab.h : COLORS.accent.h;
-          for (const tip of FINGER_TIPS) {
-            const lm = hand[tip];
-            if (lm && Math.random() > 0.7) {
-              spawnParticles(lm.x, lm.y, 1, hue);
-            }
-          }
+        // Spawn particles during active gestures
+        if (showParticles && gesture !== "none" && Math.random() > 0.85) {
+          const tip = FINGER_TIPS[Math.floor(Math.random() * 5)];
+          const lm = landmarks[hi][tip];
+          if (lm) spawnParticles(lm.x, lm.y, 1, getGestureHue(gesture));
         }
       }
 
-      // Draw particles (on top)
-      if (showParticles) {
-        drawParticles(ctx, particlesRef.current);
-      }
-
-      // Draw gesture label
+      if (showParticles) drawParticles(ctx, particlesRef.current);
       if (gesture !== "none") {
         const palm = landmarks[0][9] || landmarks[0][0];
-        if (palm) drawGestureLabel(ctx, palm.x, palm.y - 0.06, gesture, confidence, timeRef.current);
+        if (palm) drawGestureHUD(ctx, palm.x, palm.y, gesture, interaction, confidence, timeRef.current);
       }
-
-      // Draw confidence bar
-      if (landmarks[0]) {
-        drawConfidenceBar(ctx, confidence);
-      }
-
-      // Draw handedness
-      if (handedness && landmarks[0]) {
-        const wrist = landmarks[0][0];
-        if (wrist) {
-          ctx.fillStyle = hsl(COLORS.secondary.h, 50, 40, 0.6);
-          ctx.font = "10px monospace";
-          ctx.textAlign = "center";
-          ctx.fillText(handedness, 1 - wrist.x, wrist.y + 0.04);
-        }
+      drawConfidenceArc(ctx, confidence);
+      if (handedness && landmarks[0]?.[0]) {
+        const w = landmarks[0][0];
+        ctx.fillStyle = hsl(C.purple[0], 40, 50, 0.5);
+        ctx.font = "10px monospace"; ctx.textAlign = "center";
+        ctx.fillText(handedness, w.x, w.y + 0.04);
       }
     }
 
-    // Draw landmark labels
-    if (showLabels && landmarks && landmarks.length > 0) {
-      drawLandmarkLabels(ctx, landmarks[0], gesture === "grab");
-    }
-
+    if (showLabels && landmarks?.[0]) drawLabels(ctx, landmarks[0]);
     ctx.restore();
-
     rafRef.current = requestAnimationFrame(render);
-  }, [landmarks, gesture, confidence, handedness, width, height, showLabels, showParticles, showTrails, updateParticles, updateTrails, spawnParticles]);
+  }, [landmarks, gesture, interaction, confidence, handedness, width, height, showLabels, showParticles, showTrails]);
 
   useEffect(() => {
     rafRef.current = requestAnimationFrame(render);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [render]);
 
-  // Track previous landmarks for trail comparison
-  useEffect(() => {
-    prevLandmarksRef.current = landmarks;
-  }, [landmarks]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={width}
-      height={height}
-      style={{ width: "100%", height: "100%" }}
-    />
-  );
+  return <canvas ref={canvasRef} width={width} height={height} style={{ width: "100%", height: "100%" }} />;
 }
 
-// ── Drawing Functions ───────────────────────────────────────────────────────
+// ── Hand Drawing (premium quality) ──────────────────────────────────────────
+// NOTE: Landmarks are already in DISPLAY space (1-x applied by transformLandmark).
+// Do NOT apply another flip here.
 
 function drawHand(
   ctx: CanvasRenderingContext2D,
   landmarks: Landmark[],
   gesture: GestureType,
-  confidence: number,
+  conf: number,
   time: number,
   isPrimary: boolean,
 ) {
-  const isGrabbing = gesture === "grab";
-  const isPinching = gesture === "pinch";
-  const pulse = 0.5 + 0.5 * Math.sin(time * 3);
+  const isGrab = gesture === "grab";
+  const isPinch = gesture === "pinch";
+  const isSpread = gesture === "finger_spread";
+  const pulse = 0.5 + 0.5 * Math.sin(time * 3.5);
+  const pulse2 = 0.5 + 0.5 * Math.sin(time * 2.3 + 1);
 
-  // ── Glowing skeletal connections ──
-  for (const [start, end] of HAND_CONNECTIONS) {
-    const p1 = landmarks[start];
-    const p2 = landmarks[end];
+  const getHue = () => isPinch ? C.pinch[0] : isGrab ? C.grab[0] : isSpread ? C.spread[0] : C.cyan[0];
+
+  // ── Skeletal connections (3-pass glow) ──
+  for (const [s, e] of HAND_CONNECTIONS) {
+    const p1 = landmarks[s], p2 = landmarks[e];
     if (!p1 || !p2) continue;
 
-    const x1 = 1 - p1.x, y1 = p1.y;
-    const x2 = 1 - p2.x, y2 = p2.y;
+    const gradient = ctx.createLinearGradient(p1.x, p1.y, p2.x, p2.y);
+    const h = getHue();
+    gradient.addColorStop(0, hsl(h, C.cyan[1], C.cyan[2], 0.9));
+    gradient.addColorStop(1, hsl(C.purple[0], C.purple[1], C.purple[2], 0.9));
 
-    // Gradient along the bone
-    const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-    const hue1 = isPinching ? COLORS.pinch.h : isGrabbing ? COLORS.grab.h : COLORS.primary.h;
-    const hue2 = isPinching ? COLORS.pinch.h + 30 : isGrabbing ? COLORS.grab.h - 20 : COLORS.secondary.h;
-    gradient.addColorStop(0, hsl(hue1, COLORS.primary.s, COLORS.primary.l, 0.9));
-    gradient.addColorStop(1, hsl(hue2, COLORS.secondary.s, COLORS.secondary.l, 0.9));
-
-    // Outer glow
-    ctx.strokeStyle = hsl(hue1, 70, 50, 0.15 * confidence);
-    ctx.lineWidth = isPrimary ? 0.006 : 0.004;
+    // Pass 1: Outer glow
+    ctx.strokeStyle = hsl(h, 60, 45, 0.12 * conf);
+    ctx.lineWidth = (isPrimary ? 0.008 : 0.005) * (1 + pulse * 0.2);
     ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
 
-    // Inner bright line
+    // Pass 2: Gradient bone
     ctx.strokeStyle = gradient;
-    ctx.lineWidth = isPrimary ? 0.0025 : 0.0018;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
+    ctx.lineWidth = isPrimary ? 0.003 : 0.002;
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
 
-    // Core bright line
-    ctx.strokeStyle = hsl(hue1, 40, 90, 0.6 * confidence);
+    // Pass 3: Bright core
+    ctx.strokeStyle = hsl(h, 30, 92, 0.5 * conf);
     ctx.lineWidth = isPrimary ? 0.001 : 0.0007;
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
   }
 
-  // ── Fingertip particles & glow ──
+  // ── Fingertip bloom ──
   for (const tip of FINGER_TIPS) {
     const lm = landmarks[tip];
     if (!lm) continue;
-    const x = 1 - lm.x, y = lm.y;
-    const isTip = FINGER_TIPS.includes(tip);
-    const hue = isPinching ? COLORS.pinch.h : isGrabbing ? COLORS.grab.h : (isTip ? COLORS.accent.h : COLORS.primary.h);
+    const h = getHue();
+    const r = 0.018 * (1 + pulse * 0.3);
 
-    // Outer glow
-    const glowR = (isTip ? 0.015 : 0.01) * (1 + pulse * 0.3);
-    const grad = ctx.createRadialGradient(x, y, 0, x, y, glowR);
-    grad.addColorStop(0, hsl(hue, 80, 60, 0.4 * confidence));
-    grad.addColorStop(0.5, hsl(hue, 70, 50, 0.1 * confidence));
+    // Bloom gradient
+    const grad = ctx.createRadialGradient(lm.x, lm.y, 0, lm.x, lm.y, r);
+    grad.addColorStop(0, hsl(h, 80, 65, 0.5 * conf));
+    grad.addColorStop(0.4, hsl(h, 70, 50, 0.15 * conf));
     grad.addColorStop(1, "transparent");
     ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(x, y, glowR, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Bright core
-    ctx.fillStyle = hsl(hue, 50, 85, 0.9 * confidence);
-    ctx.beginPath();
-    ctx.arc(x, y, isTip ? 0.004 : 0.003, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Ring for tips
-    if (isTip) {
-      ctx.strokeStyle = hsl(hue, 60, 70, 0.3 * confidence);
-      ctx.lineWidth = 0.0005;
-      ctx.beginPath();
-      ctx.arc(x, y, 0.007 + pulse * 0.002, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-  }
-
-  // ── Palm center pulse ──
-  const palm = landmarks[9] || landmarks[0];
-  if (palm) {
-    const px = 1 - palm.x, py = palm.y;
-    const pulseR = 0.018 + pulse * 0.006;
-
-    // Outer pulse ring
-    const pulseAlpha = 0.15 + pulse * 0.1;
-    ctx.strokeStyle = hsl(COLORS.palm.h, 50, 55, pulseAlpha * confidence);
-    ctx.lineWidth = 0.0005;
-    ctx.beginPath();
-    ctx.arc(px, py, pulseR + pulse * 0.008, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // Inner glow
-    const palmGrad = ctx.createRadialGradient(px, py, 0, px, py, 0.012);
-    palmGrad.addColorStop(0, hsl(COLORS.palm.h, 60, 60, 0.3 * confidence));
-    palmGrad.addColorStop(1, "transparent");
-    ctx.fillStyle = palmGrad;
-    ctx.beginPath();
-    ctx.arc(px, py, 0.012, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(lm.x, lm.y, r, 0, Math.PI * 2); ctx.fill();
 
     // Core dot
-    ctx.fillStyle = hsl(COLORS.palm.h, 50, 75, 0.7 * confidence);
-    ctx.beginPath();
-    ctx.arc(px, py, 0.003, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle = hsl(h, 40, 90, 0.95 * conf);
+    ctx.beginPath(); ctx.arc(lm.x, lm.y, isPrimary ? 0.005 : 0.003, 0, Math.PI * 2); ctx.fill();
+
+    // Pulse ring
+    ctx.strokeStyle = hsl(h, 50, 70, (0.2 + pulse * 0.15) * conf);
+    ctx.lineWidth = 0.0006;
+    ctx.beginPath(); ctx.arc(lm.x, lm.y, 0.009 + pulse2 * 0.003, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  // ── Palm energy core ──
+  const palm = landmarks[9] || landmarks[0];
+  if (palm) {
+    const pr = 0.022 + pulse * 0.008;
+
+    // Outer pulse ring
+    ctx.strokeStyle = hsl(C.palm[0], 50, 55, (0.15 + pulse * 0.12) * conf);
+    ctx.lineWidth = 0.0006;
+    ctx.beginPath(); ctx.arc(palm.x, palm.y, pr, 0, Math.PI * 2); ctx.stroke();
+
+    // Second ring
+    ctx.strokeStyle = hsl(C.palm[0], 40, 65, (0.08 + pulse2 * 0.08) * conf);
+    ctx.beginPath(); ctx.arc(palm.x, palm.y, pr + 0.008, 0, Math.PI * 2); ctx.stroke();
+
+    // Inner glow
+    const pg = ctx.createRadialGradient(palm.x, palm.y, 0, palm.x, palm.y, 0.015);
+    pg.addColorStop(0, hsl(C.palm[0], 55, 60, 0.35 * conf));
+    pg.addColorStop(1, "transparent");
+    ctx.fillStyle = pg;
+    ctx.beginPath(); ctx.arc(palm.x, palm.y, 0.015, 0, Math.PI * 2); ctx.fill();
+
+    // Core dot
+    ctx.fillStyle = hsl(C.palm[0], 45, 78, 0.8 * conf);
+    ctx.beginPath(); ctx.arc(palm.x, palm.y, 0.004, 0, Math.PI * 2); ctx.fill();
   }
 
   // ── Wrist glow ──
   const wrist = landmarks[0];
   if (wrist) {
-    const wx = 1 - wrist.x, wy = wrist.y;
-    const wristGrad = ctx.createRadialGradient(wx, wy, 0, wx, wy, 0.01);
-    wristGrad.addColorStop(0, hsl(COLORS.glow.h, 60, 50, 0.2 * confidence));
-    wristGrad.addColorStop(1, "transparent");
-    ctx.fillStyle = wristGrad;
-    ctx.beginPath();
-    ctx.arc(wx, wy, 0.01, 0, Math.PI * 2);
-    ctx.fill();
+    const wg = ctx.createRadialGradient(wrist.x, wrist.y, 0, wrist.x, wrist.y, 0.012);
+    wg.addColorStop(0, hsl(C.glow[0], 60, 50, 0.2 * conf));
+    wg.addColorStop(1, "transparent");
+    ctx.fillStyle = wg;
+    ctx.beginPath(); ctx.arc(wrist.x, wrist.y, 0.012, 0, Math.PI * 2); ctx.fill();
   }
 }
 
 function drawParticles(ctx: CanvasRenderingContext2D, particles: Particle[]) {
   for (const p of particles) {
     const progress = p.life / p.maxLife;
-    const alpha = (1 - progress) * 0.8;
-    const size = p.size * (1 - progress * 0.5);
-    const x = 1 - p.x, y = p.y;
+    const alpha = (1 - progress) * 0.9;
+    const size = p.size * (1 - progress * 0.6);
 
-    // Glow
-    const grad = ctx.createRadialGradient(x, y, 0, x, y, size / 50);
+    const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, size / 40);
     grad.addColorStop(0, hsl(p.hue, 80, 70, alpha));
     grad.addColorStop(1, "transparent");
     ctx.fillStyle = grad;
-    ctx.beginPath();
-    ctx.arc(x, y, size / 50, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(p.x, p.y, size / 40, 0, Math.PI * 2); ctx.fill();
 
-    // Core
-    ctx.fillStyle = hsl(p.hue, 50, 90, alpha);
-    ctx.beginPath();
-    ctx.arc(x, y, size / 200, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle = hsl(p.hue, 50, 92, alpha);
+    ctx.beginPath(); ctx.arc(p.x, p.y, size / 150, 0, Math.PI * 2); ctx.fill();
   }
 }
 
-function drawTrails(
-  ctx: CanvasRenderingContext2D,
-  trails: Map<number, Array<{ x: number; y: number; t: number }>>,
-) {
+function drawTrails(ctx: CanvasRenderingContext2D, trails: Map<number, Array<{ x: number; y: number; t: number }>>) {
   const now = performance.now();
   for (const [, trail] of trails) {
     if (trail.length < 2) continue;
-    const tipHue = COLORS.accent.h;
 
+    // Smooth bezier trail
     ctx.beginPath();
-    for (let i = 0; i < trail.length; i++) {
-      const p = trail[i];
-      const x = 1 - p.x, y = p.y;
-
-      if (i === 0) {
-        ctx.moveTo(x, y);
-      } else {
-        ctx.lineTo(x, y);
-      }
+    ctx.moveTo(trail[0].x, trail[0].y);
+    for (let i = 1; i < trail.length; i++) {
+      const prev = trail[i - 1]!, curr = trail[i]!;
+      const mx = (prev.x + curr.x) / 2, my = (prev.y + curr.y) / 2;
+      ctx.quadraticCurveTo(prev.x, prev.y, mx, my);
     }
-    ctx.strokeStyle = hsl(tipHue, 70, 60, 0.25);
-    ctx.lineWidth = 0.0015;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+
+    const age = now - trail[trail.length - 1]!.t;
+    const alpha = Math.max(0, 1 - age / 250) * 0.4;
+    ctx.strokeStyle = hsl(C.bright[0], 65, 60, alpha);
+    ctx.lineWidth = 0.002;
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
     ctx.stroke();
 
-    // Bright trail head
-    const last = trail[trail.length - 1];
-    if (last) {
-      const alpha2 = Math.max(0, 1 - (now - last.t) / 100) * 0.6;
-      ctx.fillStyle = hsl(tipHue, 60, 75, alpha2);
-      ctx.beginPath();
-      ctx.arc(1 - last.x, last.y, 0.003, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    // Bright head
+    const last = trail[trail.length - 1]!;
+    const ha = Math.max(0, 1 - (now - last.t) / 120) * 0.7;
+    ctx.fillStyle = hsl(C.bright[0], 55, 78, ha);
+    ctx.beginPath(); ctx.arc(last.x, last.y, 0.004, 0, Math.PI * 2); ctx.fill();
   }
 }
 
-function drawGestureLabel(
+function drawGestureHUD(
   ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
+  x: number, y: number,
   gesture: GestureType,
-  confidence: number,
+  interaction: GestureInteraction,
+  conf: number,
   time: number,
 ) {
   const label = gesture.replace(/_/g, " ").toUpperCase();
   const pulse = 0.8 + 0.2 * Math.sin(time * 4);
-  const hue = gesture === "pinch" ? COLORS.pinch.h : gesture === "grab" ? COLORS.grab.h : COLORS.accent.h;
+  const hue = gesture === "pinch" ? C.pinch[0] : gesture === "grab" ? C.grab[0] :
+    gesture === "finger_spread" ? C.spread[0] : C.bright[0];
 
   ctx.save();
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
 
   // Background pill
-  const textW = ctx.measureText(label).width / 100 + 0.02;
-  ctx.fillStyle = hsl(hue, 40, 15, 0.6 * pulse);
+  const textW = ctx.measureText(label).width / 100 + 0.03;
+  ctx.fillStyle = hsl(hue, 35, 12, 0.7 * pulse);
   ctx.beginPath();
-  const rx = 1 - x, ry = y;
-  ctx.roundRect(rx - textW / 2, ry - 0.012, textW, 0.024, 0.006);
+  ctx.roundRect(x - textW / 2, y - 0.018, textW, 0.036, 0.008);
   ctx.fill();
 
-  // Border
-  ctx.strokeStyle = hsl(hue, 60, 50, 0.3 * pulse * confidence);
-  ctx.lineWidth = 0.0003;
+  // Border glow
+  ctx.strokeStyle = hsl(hue, 55, 50, 0.4 * pulse * conf);
+  ctx.lineWidth = 0.0004;
   ctx.beginPath();
-  ctx.roundRect(rx - textW / 2, ry - 0.012, textW, 0.024, 0.006);
+  ctx.roundRect(x - textW / 2, y - 0.018, textW, 0.036, 0.008);
   ctx.stroke();
 
-  // Text
-  ctx.fillStyle = hsl(hue, 50, 80, 0.9 * confidence);
+  // Gesture text
+  ctx.fillStyle = hsl(hue, 45, 82, 0.95 * conf);
   ctx.font = "bold 10px monospace";
-  ctx.fillText(label, rx, ry);
+  ctx.fillText(label, x, y);
+
+  // Interaction indicator
+  if (interaction !== "idle") {
+    ctx.fillStyle = hsl(hue, 40, 60, 0.6 * conf);
+    ctx.font = "8px monospace";
+    ctx.fillText(`→ ${interaction}`, x, y + 0.025);
+  }
 
   ctx.restore();
 }
 
-function drawConfidenceBar(ctx: CanvasRenderingContext2D, confidence: number) {
-  const barW = 0.06;
-  const barH = 0.003;
-  const x = 0.02;
-  const y = 0.02;
-  const hue = confidence > 0.7 ? 140 : confidence > 0.4 ? 50 : 0;
+function drawConfidenceArc(ctx: CanvasRenderingContext2D, conf: number) {
+  const cx = 0.04, cy = 0.96, r = 0.02;
+  const hue = conf > 0.7 ? 140 : conf > 0.4 ? 50 : 0;
 
-  // Background
-  ctx.fillStyle = hsl(0, 0, 30, 0.3);
-  ctx.beginPath();
-  ctx.roundRect(x, y, barW, barH, barH / 2);
-  ctx.fill();
+  // Background arc
+  ctx.strokeStyle = hsl(0, 0, 30, 0.2);
+  ctx.lineWidth = 0.002;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
 
-  // Fill
-  ctx.fillStyle = hsl(hue, 70, 50, 0.7);
-  ctx.beginPath();
-  ctx.roundRect(x, y, barW * confidence, barH, barH / 2);
-  ctx.fill();
+  // Confidence arc
+  ctx.strokeStyle = hsl(hue, 65, 50, 0.7);
+  ctx.lineWidth = 0.003;
+  ctx.lineCap = "round";
+  ctx.beginPath(); ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * conf); ctx.stroke();
 
   // Label
-  ctx.fillStyle = hsl(0, 0, 70, 0.5);
-  ctx.font = "8px monospace";
-  ctx.textAlign = "left";
-  ctx.fillText(`${Math.round(confidence * 100)}%`, x, y + 0.012);
+  ctx.fillStyle = hsl(0, 0, 65, 0.5);
+  ctx.font = "7px monospace"; ctx.textAlign = "center";
+  ctx.fillText(`${Math.round(conf * 100)}%`, cx, cy + r + 0.012);
 }
 
-function drawLandmarkLabels(
-  ctx: CanvasRenderingContext2D,
-  landmarks: Landmark[],
-  _isGrabbing: boolean,
-) {
-  ctx.font = "7px monospace";
-  ctx.textAlign = "center";
-  ctx.fillStyle = hsl(COLORS.primary.h, 40, 60, 0.4);
-
-  // Only draw labels for key landmarks (not all 21)
-  const keyIndices = [0, 4, 8, 12, 16, 20];
-  for (const i of keyIndices) {
+function drawLabels(ctx: CanvasRenderingContext2D, landmarks: Landmark[]) {
+  ctx.font = "7px monospace"; ctx.textAlign = "center";
+  ctx.fillStyle = hsl(C.cyan[0], 35, 55, 0.35);
+  for (const i of [0, 4, 8, 12, 16, 20]) {
     const lm = landmarks[i];
-    if (!lm) continue;
-    const x = 1 - lm.x, y = lm.y;
-    const name = LANDMARK_NAMES[i];
-    ctx.fillText(name, x, y + 0.025);
+    if (lm) ctx.fillText(String(i), lm.x, lm.y + 0.022);
   }
 }

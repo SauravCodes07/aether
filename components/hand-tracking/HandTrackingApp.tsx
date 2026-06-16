@@ -11,6 +11,8 @@ import {
   detectVictory,
   detectSwipe,
   gestureToInteraction,
+  detectFingerSpread,
+  GestureStateMachine,
   Hand,
   Gesture,
   GestureType,
@@ -99,6 +101,7 @@ export default function HandTrackingApp() {
   });
   const interactionRef = useRef<InteractionState>(createDefaultInteractionState());
   const gestureRef = useRef<GestureType>("none");
+  const stateMachineRef = useRef(new GestureStateMachine());
 
   useEffect(() => { gestureRef.current = gesture; }, [gesture]);
 
@@ -115,6 +118,7 @@ export default function HandTrackingApp() {
       gestures.push(detectPoint(hand));
       gestures.push(detectThumbsUp(hand));
       gestures.push(detectVictory(hand));
+      gestures.push(detectFingerSpread(hand));
       if (prevHandsRef.current?.length) {
         gestures.push(detectSwipe(hand, prevHandsRef.current[0]).gesture);
       }
@@ -219,7 +223,9 @@ export default function HandTrackingApp() {
             }
           }
 
-          const detectedGesture = detectAllGestures(hands);
+          const rawGesture = detectAllGestures(hands);
+          const stateResult = stateMachineRef.current.update(rawGesture);
+          const detectedGesture = stateResult.gesture;
           const gestureInteraction = gestureToInteraction(detectedGesture);
           setGesture(detectedGesture);
           setInteraction(gestureInteraction);
@@ -343,6 +349,7 @@ export default function HandTrackingApp() {
           <HandVisualizer
             landmarks={rawLandmarks}
             gesture={gesture}
+            interaction={interaction}
             confidence={confidence / 100}
             handedness={handedness}
             width={1280}

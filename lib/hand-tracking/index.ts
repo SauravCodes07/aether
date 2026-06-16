@@ -22,7 +22,7 @@ export type Hand = {
 
 export type GestureType =
   | "pinch" | "grab" | "open_palm" | "closed_fist" | "point"
-  | "thumbs_up" | "victory"
+  | "thumbs_up" | "victory" | "finger_spread"
   | "swipe_left" | "swipe_right" | "swipe_up" | "swipe_down"
   | "none";
 
@@ -406,6 +406,26 @@ export function detectVictory(hand: Hand): Gesture {
   return { type: score > 0.02 ? "victory" : "none", score: Math.min(1, score * 20), confidence: Math.min(1, score * 20) };
 }
 
+export function detectFingerSpread(hand: Hand): Gesture {
+  const tips = [8, 12, 16, 20]; // Index, Middle, Ring, Pinky tips
+  const lms = tips.map(i => hand.landmarks[i]);
+  if (lms.some(l => !l)) return { type: "none", score: 0 };
+  // Measure spread: average distance between adjacent fingertips
+  const d12 = distance2D(lms[0]!, lms[1]!);
+  const d23 = distance2D(lms[1]!, lms[2]!);
+  const d34 = distance2D(lms[2]!, lms[3]!);
+  const avgSpread = (d12 + d23 + d34) / 3;
+  // Fingers are spread when average inter-finger distance > 0.06
+  const score = Math.max(0, Math.min(1, (avgSpread - 0.04) * 15));
+  // Also check that fingers are extended (not a fist)
+  const palm = hand.landmarks[0];
+  if (!palm) return { type: "none", score: 0 };
+  const avgExt = tips.reduce((s, i) => s + distance(palm, hand.landmarks[i] || palm), 0) / 4;
+  const extensionBonus = avgExt > 0.12 ? 1 : avgExt / 0.12;
+  const finalScore = score * extensionBonus;
+  return { type: finalScore > 0.5 ? "finger_spread" : "none", score: finalScore, confidence: finalScore };
+}
+
 // ── Swipe Detection ─────────────────────────────────────────────────────────
 
 export function detectSwipe(
@@ -443,7 +463,96 @@ export function gestureToInteraction(gesture: GestureType): GestureInteraction {
     case "open_palm": return "menu";
     case "victory": return "click";
     case "thumbs_up": return "click";
+    case "finger_spread": return "zoom";
     default: return "idle";
+  }
+}
+
+// ── Gesture State Machine ───────────────────────────────────────────────────
+// Manages gesture lifecycle with cooldowns, transitions, and visual feedback.
+
+export class GestureStateMachine {
+  private current: GestureType = "none";
+  private previous: GestureType = "none";
+  private cooldowns: Map<GestureType, number> = new Map();
+  private cooldownMs = 500; // 500ms cooldown between same gesture re-triggers
+  private stateStartTime = 0;
+  private minDuration = 100; // Minimum gesture duration to register (ms)
+  private maxDuration = 5000; // Force release after this duration
+  private transitionFrame = 0;
+
+  update(gesture: GestureType, timestamp: number = Date.now()): {
+    gesture: GestureType;
+    isNew: boolean;
+    justEnded: boolean;
+    stateDuration: number;
+    transitionProgress: number;
+  } {
+    this.transitionFrame++;
+
+    // Check if gesture is in cooldown
+    const inCooldown = this.cooldowns.has(gesture) &&
+      timestamp - (this.cooldowns.get(gesture) ?? 0) < this.cooldownMs;
+
+    if (inCooldown && gesture !== "none") {
+      return {
+        gesture: "none",
+        isNew: false,
+        justEnded: false,
+        stateDuration: timestamp - this.stateStartTime,
+        transitionProgress: 0,
+      };
+    }
+
+    let isNew = false;
+    let justEnded = false;
+
+    if (gesture !== this.current) {
+      if (this.current !== "none") {
+        justEnded = true;
+        this.cooldowns.set(this.current, timestamp);
+      }
+      if (gesture !== "none") {
+        isNew = true;
+        this.stateStartTime = timestamp;
+      }
+      this.previous = this.current;
+      this.current = gesture;
+      this.transitionFrame = 0;
+    }
+
+    const stateDuration = timestamp - this.stateStartTime;
+    const transitionProgress = Math.min(1, this.transitionFrame / 10); // 10 frames to transition
+
+    // Force release if held too long
+    if (stateDuration > this.maxDuration && this.current !== "none") {
+      this.cooldowns.set(this.current, timestamp);
+      this.previous = this.current;
+      this.current = "none";
+      return { gesture: "none", isNew: false, justEnded: true, stateDuration: 0, transitionProgress: 0 };
+    }
+
+    return { gesture: this.current, isNew, justEnded, stateDuration, transitionProgress };
+  }
+
+  getCurrent(): GestureType { return this.current; }
+  getPrevious(): GestureType { return this.previous; }
+
+  forceRelease(): void {
+    if (this.current !== "none") {
+      this.cooldowns.set(this.current, Date.now());
+    }
+    this.previous = this.current;
+    this.current = "none";
+    this.transitionFrame = 0;
+  }
+
+  reset(): void {
+    this.current = "none";
+    this.previous = "none";
+    this.cooldowns.clear();
+    this.stateStartTime = 0;
+    this.transitionFrame = 0;
   }
 }
 
