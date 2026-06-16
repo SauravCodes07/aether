@@ -1,10 +1,5 @@
-import dynamic from "next/dynamic";
 import { Card } from "@/components/ui/card";
-
-const HandTrackingApp = dynamic(
-  () => import("@/components/hand-tracking/HandTrackingApp"),
-  { ssr: false }
-);
+import HandTrackingApp from "@/components/hand-tracking/HandTrackingApp";
 
 export default function Page() {
   return (

@@ -48,7 +48,7 @@ export function DashboardPlaceholderCards() {
                 </h3>
                 {item.href ? (
                   <a href={item.href} className="text-sm font-medium">
-                    <Badge variant="outline">{item.status}</Badge>
+                    <Badge variant="accent">{item.status}</Badge>
                   </a>
                 ) : (
                   <Badge variant="default">{item.status}</Badge>
