@@ -25,7 +25,8 @@ const placeholders = [
     title: "Hand Tracking",
     description: "Control spatial UI with natural gestures.",
     module: "handTracking" as const,
-    status: "Coming soon",
+    status: "Launch",
+    href: "/hand-tracking",
   },
 ];
 
@@ -45,7 +46,13 @@ export function DashboardPlaceholderCards() {
                 <h3 className={`font-semibold ${theme.accentClass}`}>
                   {item.title}
                 </h3>
-                <Badge variant="default">{item.status}</Badge>
+                {item.href ? (
+                  <a href={item.href} className="text-sm font-medium">
+                    <Badge variant="outline">{item.status}</Badge>
+                  </a>
+                ) : (
+                  <Badge variant="default">{item.status}</Badge>
+                )}
               </div>
               <p className="text-sm leading-relaxed text-aether-text-muted">
                 {item.description}
