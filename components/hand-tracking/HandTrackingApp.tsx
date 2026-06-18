@@ -12,6 +12,7 @@ import {
   detectSwipe,
   gestureToInteraction,
   detectFingerSpread,
+  detectTwoHandGesture,
   GestureStateMachine,
   Hand,
   Gesture,
@@ -204,12 +205,11 @@ export default function HandTrackingApp() {
 
   useEffect(() => {
     if (cameraStatus !== "ONLINE") return;
-    let lastTs = performance.now();
     let frameCount = 0;
     let lastFpsUpdate = performance.now();
 
     const loop = async () => {
-      if (cameraStatus === "PAUSED") {
+      if ((cameraStatus as CameraStatus) === "PAUSED") {
         rafRef.current = requestAnimationFrame(loop);
         return;
       }
