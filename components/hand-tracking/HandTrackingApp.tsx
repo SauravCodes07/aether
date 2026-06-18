@@ -143,6 +143,14 @@ export default function HandTrackingApp() {
         gestures.push(detectSwipe(hand, prevHandsRef.current[0], 0.04).gesture);
       }
     }
+
+    if (hands.length === 2) {
+      const twoHand = detectTwoHandGesture(hands[0], hands[1]);
+      if (twoHand.type !== "none") {
+        return twoHand.type;
+      }
+    }
+
     const best = gestures.reduce(
       (max, g) => (g.score > max.score ? g : max),
       { type: "none" as GestureType, score: 0 },
@@ -484,9 +492,9 @@ export default function HandTrackingApp() {
       </div>
 
       {/* Controls */}
-      <div className="flex flex-wrap items-center justify-between p-4 bg-slate-900/50 rounded-xl border border-aether-border/10">
-        <div className="flex items-center gap-2">
-          <button className="btn-primary flex items-center gap-2" onClick={cameraStatus === "OFFLINE" ? startTracking : stopCamera}>
+      <div className="flex flex-wrap items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5">
+        <div className="flex items-center gap-1.5">
+          <button className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-xs font-medium transition-all" onClick={cameraStatus === "OFFLINE" ? startTracking : stopCamera}>
              {cameraStatus === "OFFLINE" ? "▶ Start Tracking" : "■ Stop Camera"}
           </button>
           {cameraStatus !== "OFFLINE" && (
@@ -561,6 +569,20 @@ export default function HandTrackingApp() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function StatusBadge({ label, value, status }: { label: string, value: string, status: 'success' | 'warning' | 'error' }) {
+  const colors = {
+    success: 'text-green-400 bg-green-400/10 border-green-400/20',
+    warning: 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20',
+    error: 'text-red-400 bg-red-400/10 border-red-400/20',
+  };
+  return (
+    <div className={`flex items-center gap-2 px-2 py-1 rounded-lg border font-mono text-[10px] ${colors[status]}`}>
+      <span className="opacity-50 uppercase">{label}</span>
+      <span className="font-bold">{value}</span>
     </div>
   );
 }

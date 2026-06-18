@@ -24,7 +24,7 @@ export type GestureType =
   | "pinch" | "grab" | "open_palm" | "closed_fist" | "point"
   | "thumbs_up" | "victory" | "finger_spread"
   | "swipe_left" | "swipe_right" | "swipe_up" | "swipe_down"
-  | "none";
+  | "two_hand_scale" | "two_hand_rotate" | "none";
 
 export type Gesture = { type: GestureType; score: number; confidence?: number };
 export type CursorPosition = { x: number; y: number };
@@ -670,12 +670,12 @@ export function createDefaultInteractionState(): InteractionState {
 
 export type TwoHandGesture = { type: "two_hand_scale" | "two_hand_rotate" | "none"; magnitude: number };
 
-export function detectTwoHandGesture(hands: Hand[]): TwoHandGesture {
-  if (hands.length < 2) return { type: "none", magnitude: 0 };
-  const p0 = hands[0].landmarks[0], p1 = hands[1].landmarks[0];
+export function detectTwoHandGesture(handA: Hand, handB: Hand): TwoHandGesture {
+  const p0 = handA.landmarks[9], p1 = handB.landmarks[9];
   if (!p0 || !p1) return { type: "none", magnitude: 0 };
   const dist = distance2D(p0, p1);
-  const angle = Math.atan2(p1.y - p0.y, p1.x - p0.x);
+  const dx = p1.x - p0.x, dy = p1.y - p0.y;
+  const angle = Math.atan2(dy, dx);
   return Math.abs(Math.cos(angle)) > Math.abs(Math.sin(angle))
     ? { type: "two_hand_scale", magnitude: dist }
     : { type: "two_hand_rotate", magnitude: angle };

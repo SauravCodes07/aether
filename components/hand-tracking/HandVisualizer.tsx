@@ -148,7 +148,11 @@ export default function HandVisualizer({
       if (showTrails) drawTrails(ctx, trailsRef.current);
 
       for (let hi = 0; hi < landmarks.length; hi++) {
-        drawHand(ctx, landmarks[hi], gesture, confidence, timeRef.current, hi === 0);
+        const hand = landmarks[hi];
+        const isMain = hi === 0;
+        
+        drawBoundingBox(ctx, hand, confidence, isMain);
+        drawHand(ctx, hand, gesture, confidence, timeRef.current, isMain);
 
         // Spawn particles during active gestures
         if (showParticles && gesture !== "none" && Math.random() > 0.85) {
@@ -156,6 +160,10 @@ export default function HandVisualizer({
           const lm = landmarks[hi][tip];
           if (lm) spawnParticles(lm.x, lm.y, 1, getGestureHue(gesture));
         }
+      }
+
+      if (gesture === "point" && landmarks[0]?.[8]) {
+        drawPointerBeam(ctx, landmarks[0][8], landmarks[0][5], confidence);
       }
 
       if (showParticles) drawParticles(ctx, particlesRef.current);
@@ -189,6 +197,52 @@ export default function HandVisualizer({
 // NOTE: Landmarks are already in DISPLAY space (1-x applied by transformLandmark).
 // Do NOT apply another flip here.
 
+function drawBoundingBox(ctx: CanvasRenderingContext2D, landmarks: Landmark[], conf: number, isMain: boolean) {
+  let minX = 1, minY = 1, maxX = 0, maxY = 0;
+  landmarks.forEach(p => {
+    minX = Math.min(minX, p.x); minY = Math.min(minY, p.y);
+    maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y);
+  });
+
+  const padding = 0.05;
+  const x = minX - padding, y = minY - padding, w = (maxX - minX) + padding * 2, h = (maxY - minY) + padding * 2;
+
+  ctx.strokeStyle = isMain ? hsl(C.cyan[0], 50, 40, 0.15 * conf) : hsl(C.purple[0], 40, 40, 0.1 * conf);
+  ctx.lineWidth = 0.001;
+  ctx.setLineDash([0.01, 0.01]);
+  ctx.strokeRect(x, y, w, h);
+  ctx.setLineDash([]);
+
+  if (isMain && conf > 0.8) {
+    ctx.fillStyle = hsl(C.cyan[0], 60, 50, 0.4);
+    ctx.font = "bold 6px monospace";
+    ctx.fillText("TRACKING LOCK", x, y - 0.005);
+  }
+}
+
+function drawPointerBeam(ctx: CanvasRenderingContext2D, tip: Landmark, base: Landmark, conf: number) {
+  const dx = tip.x - base.x, dy = tip.y - base.y;
+  const len = 0.4;
+  const ex = tip.x + dx * 10, ey = tip.y + dy * 10;
+
+  const grad = ctx.createLinearGradient(tip.x, tip.y, tip.x + dx * 5, tip.y + dy * 5);
+  grad.addColorStop(0, hsl(C.bright[0], 80, 60, 0.4 * conf));
+  grad.addColorStop(1, "transparent");
+
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = 0.002;
+  ctx.beginPath();
+  ctx.moveTo(tip.x, tip.y);
+  ctx.lineTo(ex, ey);
+  ctx.stroke();
+  
+  // Target dot
+  ctx.fillStyle = hsl(C.bright[0], 90, 70, 0.6 * conf);
+  ctx.beginPath();
+  ctx.arc(tip.x + dx * 2, tip.y + dy * 2, 0.005, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 function drawHand(
   ctx: CanvasRenderingContext2D,
   landmarks: Landmark[],
@@ -200,10 +254,12 @@ function drawHand(
   const isGrab = gesture === "grab";
   const isPinch = gesture === "pinch";
   const isSpread = gesture === "finger_spread";
+  const isOpen = gesture === "open_palm";
+
   const pulse = 0.5 + 0.5 * Math.sin(time * 3.5);
   const pulse2 = 0.5 + 0.5 * Math.sin(time * 2.3 + 1);
 
-  const getHue = () => isPinch ? C.pinch[0] : isGrab ? C.grab[0] : isSpread ? C.spread[0] : C.cyan[0];
+  const getHue = () => isPinch ? C.pinch[0] : isGrab ? C.grab[0] : isSpread ? C.spread[0] : isOpen ? 120 : C.cyan[0];
 
   // ── Skeletal connections (3-pass glow) ──
   for (const [s, e] of HAND_CONNECTIONS) {
