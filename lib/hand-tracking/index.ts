@@ -343,7 +343,7 @@ export function detectPinch(hand: Hand): Gesture {
   if (!thumb || !index) return { type: "none", score: 0 };
   const d = distance(thumb, index);
   const score = Math.max(0, 1 - d * 10);
-  return { type: score > 0.4 ? "pinch" : "none", score, confidence: score };
+  return { type: score > 0.35 ? "pinch" : "none", score, confidence: score };
 }
 
 export function detectOpenPalm(hand: Hand): Gesture {
@@ -362,7 +362,7 @@ export function detectGrab(hand: Hand): Gesture {
   const tips = [8, 12, 16, 20];
   const dists = tips.map(i => distance(palm, hand.landmarks[i] || palm));
   const avg = dists.reduce((s, v) => s + v, 0) / dists.length;
-  const score = Math.max(0, 1 - avg * 10);
+  const score = Math.max(0, 1 - avg * 12);
   return { type: score > 0.5 ? "grab" : "none", score, confidence: score };
 }
 
@@ -443,7 +443,9 @@ export function detectSwipe(
   if (!prev) return { gesture: { type: "none", score: 0 } };
   const dx = palm.x - prev.x, dy = palm.y - prev.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
-  if (dist > swipeThreshold) {
+  // Use a more sensitive per-frame threshold for high-frequency tracking loops
+  const effectiveThreshold = 0.03;
+  if (dist > effectiveThreshold) {
     const horizontal = Math.abs(dx) > Math.abs(dy);
     const type: GestureType = horizontal
       ? (dx > 0 ? "swipe_right" : "swipe_left")

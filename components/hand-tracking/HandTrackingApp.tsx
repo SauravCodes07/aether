@@ -84,6 +84,7 @@ export default function HandTrackingApp() {
   const [kalmanNoise, setKalmanNoise] = useState(0.03);
   const [interactionState, setInteractionState] =
     useState<InteractionState>(createDefaultInteractionState());
+  const [gestureLog, setGestureLog] = useState<{ id: number; text: string; type: string }[]>([]);
 
   // Refs
   const modelRef = useRef<HandLandmarkerInstance | null>(null);
@@ -105,6 +106,15 @@ export default function HandTrackingApp() {
 
   useEffect(() => { gestureRef.current = gesture; }, [gesture]);
 
+  useEffect(() => {
+    if (gesture !== "none") {
+      setGestureLog(prev => [
+        { id: Date.now(), text: `GESTURE: ${gesture.toUpperCase()}`, type: gesture },
+        ...prev.slice(0, 4)
+      ],);
+    }
+  }, [gesture]);
+
   // ── Gesture Detection Pipeline ──────────────────────────────────────────
 
   const detectAllGestures = useCallback((hands: Hand[]): GestureType => {
@@ -120,13 +130,17 @@ export default function HandTrackingApp() {
       gestures.push(detectVictory(hand));
       gestures.push(detectFingerSpread(hand));
       if (prevHandsRef.current?.length) {
-        gestures.push(detectSwipe(hand, prevHandsRef.current[0]).gesture);
+        gestures.push(detectSwipe(hand, prevHandsRef.current[0], 0.04).gesture);
       }
     }
     const best = gestures.reduce(
       (max, g) => (g.score > max.score ? g : max),
       { type: "none" as GestureType, score: 0 },
     );
+
+    // High-priority transient gestures (swipes) bypass the smoothing/stability pipeline
+    if (best.type.startsWith("swipe_") && best.score > 0.05) return best.type;
+
     historyRef.current.add(best);
     const smoothed = historyRef.current.getSmoothed();
     const debounced = debouncerRef.current.debounce(smoothed);
@@ -397,6 +411,18 @@ export default function HandTrackingApp() {
             </span>
           </div>
         )}
+
+        {/* Live Status Feed */}
+        <div className="absolute top-3 right-3 flex flex-col gap-1 items-end pointer-events-none">
+          {gestureLog.map((log) => (
+            <div key={log.id} className="px-2 py-1 rounded bg-black/80 border border-aether-border/30 text-[10px] font-mono text-cyan-400 backdrop-blur-md transition-all animate-in fade-in slide-in-from-right-2">
+              <span className="text-aether-accent-light mr-2 opacity-50">
+                {new Date(log.id).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+              {log.text}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Controls */}
