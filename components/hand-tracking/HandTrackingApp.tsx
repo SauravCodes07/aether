@@ -58,6 +58,8 @@ type MP = {
   };
 };
 
+type CameraStatus = "ONLINE" | "PAUSED" | "OFFLINE";
+
 // ── Main Component ──────────────────────────────────────────────────────────
 
 export default function HandTrackingApp() {
@@ -65,8 +67,9 @@ export default function HandTrackingApp() {
   const [rawLandmarks, setRawLandmarks] = useState<Landmark[][] | null>(null);
 
   // State
-  const [running, setRunning] = useState(false);
+  const [cameraStatus, setCameraStatus] = useState<CameraStatus>("OFFLINE");
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [mirrorView, setMirrorView] = useState(true);
   const [fps, setFps] = useState(0);
   const [latencyMs, setLatencyMs] = useState(0);
   const [confidence, setConfidence] = useState(0);
@@ -106,8 +109,15 @@ export default function HandTrackingApp() {
 
   useEffect(() => { gestureRef.current = gesture; }, [gesture]);
 
+  // Logging System
+  const log = useCallback((msg: string) => {
+    console.log(`[AETHER] ${msg}`);
+    if (msg.includes("DETECTED") && Math.random() > 0.95) return; // Reduce spam for detection logs
+  }, []);
+
   useEffect(() => {
     if (gesture !== "none") {
+      log(`GESTURE_DETECTED: ${gesture}`);
       setGestureLog(prev => [
         { id: Date.now(), text: `GESTURE: ${gesture.toUpperCase()}`, type: gesture },
         ...prev.slice(0, 4)
@@ -149,42 +159,52 @@ export default function HandTrackingApp() {
 
   // ── Camera Initialization ───────────────────────────────────────────────
 
-  useEffect(() => {
-    let mounted = true;
-    async function startCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
-        });
-        if (!mounted) return;
-        if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play(); }
-      } catch (e) {
-        if (mounted) setPermissionDenied(true);
-        console.error("Camera permission denied", e);
+  const initCamera = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+        log("CAMERA_STARTED");
+        return true;
       }
+    } catch (e) {
+      setPermissionDenied(true);
+      console.error("Camera access failed", e);
     }
-    startCamera();
-    return () => { mounted = false; stop(); };
-  }, []);
+    return false;
+  }, [log]);
 
   async function loadModel(): Promise<HandLandmarkerInstance> {
+    if (modelRef.current) return modelRef.current;
     const mp = (await import("@mediapipe/tasks-vision")) as unknown as MP;
     const filesetResolver = await mp.FilesetResolver.forVisionTasks(
       "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm",
     );
-    return mp.HandLandmarker.createFromOptions(filesetResolver, {
+    const model = await mp.HandLandmarker.createFromOptions(filesetResolver, {
       baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker.task" },
       numHands: 2,
     });
+    modelRef.current = model;
+    log("MODEL_LOADED");
+    return model;
   }
 
   // ── Main Tracking Loop ──────────────────────────────────────────────────
 
   useEffect(() => {
-    if (!running) return;
+    if (cameraStatus !== "ONLINE") return;
     let lastTs = performance.now();
+    let frameCount = 0;
+    let lastFpsUpdate = performance.now();
 
     const loop = async () => {
+      if (cameraStatus === "PAUSED") {
+        rafRef.current = requestAnimationFrame(loop);
+        return;
+      }
       if (!videoRef.current || videoRef.current.readyState < 2) {
         rafRef.current = requestAnimationFrame(loop);
         return;
@@ -192,11 +212,13 @@ export default function HandTrackingApp() {
 
       const t0 = performance.now();
       try {
-        if (!modelRef.current) modelRef.current = await loadModel();
-        const results = modelRef.current.detectForVideo(videoRef.current, performance.now());
+        const model = await loadModel();
+        log("FRAME_RECEIVED");
+        const results = model.detectForVideo(videoRef.current, performance.now());
         setLatencyMs(Math.round(performance.now() - t0));
 
         if (results.handedness?.length) {
+          log("LANDMARKS_DETECTED");
           setHandedness(results.handedness[0].label || null);
           setHandsDetected(results.handedness.length);
           setConfidence(Math.round((results.handedness[0].score || 0) * 100));
@@ -221,7 +243,7 @@ export default function HandTrackingApp() {
               const calX = (p.x - 0.5) * calibrationRef.current.scaleX + calOffset.offsetX + calibrationRef.current.offsetX;
               const calY = (p.y - 0.5) * calibrationRef.current.scaleY + calOffset.offsetY + calibrationRef.current.offsetY;
               return {
-                ...transformLandmark({ x: applyDeadZone(calX, deadZone) + 0.5, y: applyDeadZone(calY, deadZone) + 0.5, z: p.z }, true),
+                ...transformLandmark({ x: applyDeadZone(calX, deadZone) + 0.5, y: applyDeadZone(calY, deadZone) + 0.5, z: p.z }, mirrorView),
               };
             }),
             handedness: results.handedness?.[idx]?.label,
@@ -290,44 +312,60 @@ export default function HandTrackingApp() {
         console.error(err);
       }
 
+      frameCount++;
       const now = performance.now();
-      const delta = now - lastTs;
-      lastTs = now;
-      setFps(Math.round(1000 / delta));
+      if (now - lastFpsUpdate > 1000) {
+        setFps(Math.round((frameCount * 1000) / (now - lastFpsUpdate)));
+        frameCount = 0;
+        lastFpsUpdate = now;
+      }
       rafRef.current = requestAnimationFrame(loop);
     };
 
     rafRef.current = requestAnimationFrame(loop);
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running, calibrationMode, deadZone, smoothFactor, kalmanNoise]);
+  }, [cameraStatus, calibrationMode, deadZone, smoothFactor, kalmanNoise, mirrorView, log]);
 
   // ── Controls ────────────────────────────────────────────────────────────
 
-  function stop() {
-    setRunning(false);
+  const stopCamera = useCallback(() => {
+    setCameraStatus("OFFLINE");
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
     const stream = videoRef.current?.srcObject as MediaStream | null;
     if (stream) { stream.getTracks().forEach(t => t.stop()); if (videoRef.current) videoRef.current.srcObject = null; }
-    if (modelRef.current?.close) modelRef.current.close();
-    modelRef.current = null;
-  }
+    setRawLandmarks(null);
+    setGesture("none");
+    setInteraction("idle");
+    setHandsDetected(0);
+  }, []);
 
-  function startTracking() {
-    setRunning(true);
+  const pauseCamera = useCallback(() => {
+    setCameraStatus(prev => prev === "ONLINE" ? "PAUSED" : prev === "PAUSED" ? "ONLINE" : prev);
+  }, []);
+
+  const startTracking = useCallback(async () => {
+    const ok = await initCamera();
+    if (!ok) return;
+    setCameraStatus("ONLINE");
     cursorRef.current.reset();
     prevHandsRef.current = null;
     historyRef.current.clear();
-    debouncerRef.current.reset();
     stabilityRef.current.reset();
-    smootherRef.current.reset();
-    autoCalibratorRef.current.reset();
-    motionTrailRef.current.clear();
-  }
+  }, [initCamera]);
+
+  const restartCamera = useCallback(async () => {
+    stopCamera();
+    // Brief delay to ensure hardware release
+    setTimeout(() => {
+      startTracking();
+    }, 300);
+  }, [stopCamera, startTracking]);
 
   function handleResetTracking() {
-    stop();
+    stopCamera();
     cursorRef.current.reset();
+    smootherRef.current.reset();
+    autoCalibratorRef.current.reset();
     calibrationRef.current = { offsetX: 0, offsetY: 0, scaleX: 1, scaleY: 1 };
     prevHandsRef.current = null;
     historyRef.current.clear();
@@ -355,10 +393,30 @@ export default function HandTrackingApp() {
   if (permissionDenied) return <PermissionsFallback />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 bg-black/20 p-6 rounded-2xl border border-aether-border/10">
+      {/* Workspace Header */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex flex-col">
+          <h2 className="text-xl font-bold tracking-tight text-white">Hand Tracking Workspace</h2>
+          <p className="text-[10px] text-aether-text-muted font-mono uppercase tracking-widest">Aether Core v2.4.0</p>
+        </div>
+        <div className="flex items-center gap-4 text-[10px] font-mono">
+          <div className="flex items-center gap-2">
+            <span className="text-slate-500">CAMERA:</span>
+            <span className={cameraStatus === "ONLINE" ? "text-green-400" : cameraStatus === "PAUSED" ? "text-yellow-400" : "text-red-500"}>
+              {cameraStatus}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-slate-500">FPS:</span>
+            <span className={fps > 45 ? "text-green-400" : fps > 20 ? "text-yellow-400" : "text-red-400"}>{fps}</span>
+          </div>
+        </div>
+      </div>
+
       {/* Video + Visualization Feed */}
       <div className="relative w-full overflow-hidden rounded-xl border border-aether-border bg-black/90" style={{ aspectRatio: "16/9" }}>
-        <video ref={videoRef} className="w-full h-full object-cover" style={{ transform: "scaleX(-1)" }} playsInline muted />
+        <video ref={videoRef} className="w-full h-full object-cover" style={{ transform: mirrorView ? "scaleX(-1)" : "none" }} playsInline muted />
         <div className="absolute inset-0 pointer-events-none">
           <HandVisualizer
             landmarks={rawLandmarks}
@@ -390,7 +448,7 @@ export default function HandTrackingApp() {
 
         {/* Status overlay */}
         <div className="absolute top-3 left-3 flex items-center gap-2">
-          {running && (
+          {cameraStatus === "ONLINE" && (
             <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono bg-black/60 text-green-400 backdrop-blur-sm">
               <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
               LIVE
@@ -426,26 +484,29 @@ export default function HandTrackingApp() {
       </div>
 
       {/* Controls */}
-      <div className="flex flex-wrap items-center gap-2">
-        <button className="btn-primary" onClick={running ? stop : startTracking}>
-          {running ? "Stop Tracking" : "Start Tracking"}
-        </button>
-        <button className="btn-secondary" onClick={handleResetTracking}>Reset</button>
-        <button className="btn-secondary" onClick={() => setCalibrationMode(v => !v)}>
-          {calibrationMode ? "Exit Calibration" : "Calibrate"}
-        </button>
-        <button className="btn-secondary" onClick={() => setShowLabels(v => !v)}>
-          {showLabels ? "Hide Labels" : "Show Labels"}
-        </button>
-        <button className="btn-secondary" onClick={() => setShowParticles(v => !v)}>
-          {showParticles ? "Hide Particles" : "Show Particles"}
-        </button>
-        <button className="btn-secondary" onClick={() => setShowTrails(v => !v)}>
-          {showTrails ? "Hide Trails" : "Show Trails"}
-        </button>
-        <button className="btn-secondary" onClick={() => setShowGrid(v => !v)}>
-          {showGrid ? "Hide Grid" : "Show Grid"}
-        </button>
+      <div className="flex flex-wrap items-center justify-between p-4 bg-slate-900/50 rounded-xl border border-aether-border/10">
+        <div className="flex items-center gap-2">
+          <button className="btn-primary flex items-center gap-2" onClick={cameraStatus === "OFFLINE" ? startTracking : stopCamera}>
+             {cameraStatus === "OFFLINE" ? "▶ Start Tracking" : "■ Stop Camera"}
+          </button>
+          {cameraStatus !== "OFFLINE" && (
+            <button className="btn-secondary" onClick={pauseCamera}>
+              {cameraStatus === "PAUSED" ? "▶ Resume" : "⏸ Pause"}
+            </button>
+          )}
+          <button className="btn-secondary" onClick={restartCamera}>🔄 Restart</button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button className={`btn-secondary text-[10px] ${mirrorView ? "border-cyan-500/50 text-cyan-400" : ""}`} onClick={() => setMirrorView(!mirrorView)}>
+            {mirrorView ? "Mirror View: ON" : "Mirror View: OFF"}
+          </button>
+          <button className="btn-secondary text-[10px]" onClick={() => setCalibrationMode(v => !v)}>Calibrate</button>
+          <div className="h-4 w-[1px] bg-slate-700 mx-2" />
+          <button className={`p-2 rounded hover:bg-slate-800 ${showGrid ? "text-cyan-400" : "text-slate-400"}`} onClick={() => setShowGrid(!showGrid)} title="Toggle Grid">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+          </button>
+        </div>
       </div>
 
       {/* Calibration Panel */}

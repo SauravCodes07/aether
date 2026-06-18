@@ -10,6 +10,7 @@ type Props = {
   handedness?: string | null;
   handsDetected?: number;
   interactionState?: InteractionState;
+  cameraStatus?: string;
 };
 
 const GESTURE_COLORS: Record<string, string> = {
@@ -41,6 +42,7 @@ export default function DiagnosticsPanel({
   handedness,
   handsDetected = 0,
   interactionState,
+  cameraStatus = "OFFLINE",
 }: Props) {
   const gestureColor = GESTURE_COLORS[gesture] ?? "text-slate-500";
   const fpsColor = getStatusColor(fps, [30, 15]);
@@ -82,6 +84,13 @@ export default function DiagnosticsPanel({
             {handsDetected}
           </span>
         </div>
+      </div>
+
+      <div className="pt-2 border-t border-slate-700 flex justify-between">
+        <span className="text-slate-400">Camera Status</span>
+        <span className={`font-bold ${cameraStatus === "ONLINE" ? "text-green-400" : "text-red-400"}`}>
+          {cameraStatus}
+        </span>
       </div>
 
       <div className="pt-2 border-t border-slate-700">
