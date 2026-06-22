@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect } from "react";
 import {
   HAND_CONNECTIONS,
   FINGER_TIPS,
@@ -98,9 +98,32 @@ export default function HandVisualizer({
   const timeRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   const lastTimeRef = useRef(performance.now());
-  // For animated gesture label entry
   const gestureTransitionRef = useRef(0);
   const prevLabelGestureRef = useRef<GestureType>("none");
+
+  // ── Store ALL fast-changing props in refs so RAF loop is stable ──
+  const landmarksRef = useRef(landmarks);
+  const gestureRef = useRef(gesture);
+  const interactionRef = useRef(interaction);
+  const confidenceRef = useRef(confidence);
+  const handednessRef = useRef(handedness);
+  const cursorPosRef = useRef(cursorPosition);
+  const showLabelsRef = useRef(showLabels);
+  const showParticlesRef = useRef(showParticles);
+  const showTrailsRef = useRef(showTrails);
+  const showCursorRef = useRef(showCursor);
+
+  // Sync refs every render (cheap — no RAF teardown)
+  landmarksRef.current = landmarks;
+  gestureRef.current = gesture;
+  interactionRef.current = interaction;
+  confidenceRef.current = confidence;
+  handednessRef.current = handedness;
+  cursorPosRef.current = cursorPosition;
+  showLabelsRef.current = showLabels;
+  showParticlesRef.current = showParticles;
+  showTrailsRef.current = showTrails;
+  showCursorRef.current = showCursor;
 
   // Detect gesture change for particle burst
   if (gesture !== prevGestureRef.current) {
@@ -112,7 +135,7 @@ export default function HandVisualizer({
       }
     }
     prevGestureRef.current = gesture;
-    gestureTransitionRef.current = 0; // reset label animation
+    gestureTransitionRef.current = 0;
   }
 
   if (gesture !== prevLabelGestureRef.current) {
@@ -161,92 +184,96 @@ export default function HandVisualizer({
     }
   }
 
-  // ── Render Loop ──────────────────────────────────────────────────────────
-
-  const render = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const now = performance.now();
-    const dt = Math.min((now - lastTimeRef.current) / 1000, 0.05);
-    lastTimeRef.current = now;
-    timeRef.current += dt;
-    gestureTransitionRef.current = Math.min(1, gestureTransitionRef.current + dt * 5);
-
-    updateParticles(dt);
-    ctx.clearRect(0, 0, width, height);
-    ctx.save();
-    ctx.scale(width, height);
-
-    if (landmarks && landmarks.length > 0) {
-      if (showTrails) updateTrails(landmarks);
-      if (showTrails) drawTrails(ctx, trailsRef.current, gesture);
-
-      for (let hi = 0; hi < landmarks.length; hi++) {
-        const hand = landmarks[hi];
-        const isMain = hi === 0;
-
-        drawBoundingBox(ctx, hand, confidence, isMain);
-        drawHand(ctx, hand, gesture, confidence, timeRef.current, isMain);
-        drawJointGlows(ctx, hand, gesture, confidence, timeRef.current, isMain);
-
-        // Spawn particles during active gestures
-        if (showParticles && gesture !== "none" && Math.random() > 0.82) {
-          const tip = FINGER_TIPS[Math.floor(Math.random() * 5)];
-          const lm = landmarks[hi][tip!];
-          if (lm) spawnParticles(lm.x, lm.y, 1, getGestureHue(gesture));
-        }
-      }
-
-      // Pointer beam for point gesture
-      if (gesture === "point" && landmarks[0]?.[8] && landmarks[0]?.[5]) {
-        drawPointerBeam(ctx, landmarks[0][8]!, landmarks[0][5]!, confidence);
-      }
-
-      if (showParticles) drawParticles(ctx, particlesRef.current);
-
-      // Gesture HUD with animated entry
-      if (gesture !== "none") {
-        const palm = landmarks[0]?.[9] || landmarks[0]?.[0];
-        if (palm) {
-          drawGestureHUD(ctx, palm.x, palm.y, gesture, interaction, confidence, timeRef.current, gestureTransitionRef.current);
-        }
-      }
-
-      // Confidence ring — per-hand
-      for (let hi = 0; hi < landmarks.length; hi++) {
-        drawConfidenceRing(ctx, landmarks[hi]!, confidence, timeRef.current, hi === 0);
-      }
-
-      // Handedness label
-      if (handedness && landmarks[0]?.[0]) {
-        const w = landmarks[0][0]!;
-        ctx.fillStyle = hsl(C.purple[0], 40, 50, 0.5);
-        ctx.font = "10px monospace"; ctx.textAlign = "center";
-        ctx.fillText(handedness, w.x, w.y + 0.04);
-      }
-    } else {
-      // Idle: ambient glow in center
-      drawIdleState(ctx, timeRef.current);
-    }
-
-    if (showLabels && landmarks?.[0]) drawLabels(ctx, landmarks[0]);
-
-    // Spatial cursor orb
-    if (showCursor && cursorPosition) {
-      drawSpatialCursor(ctx, cursorPosition.x, cursorPosition.y, gesture, timeRef.current);
-    }
-
-    ctx.restore();
-    rafRef.current = requestAnimationFrame(render);
-  }, [landmarks, gesture, interaction, confidence, handedness, width, height, showLabels, showParticles, showTrails, cursorPosition, showCursor]);
+  // ── Stable RAF loop — reads refs, never torn down ──────────────────────
 
   useEffect(() => {
+    let running = true;
+
+    const render = () => {
+      if (!running) return;
+      const canvas = canvasRef.current;
+      if (!canvas) { rafRef.current = requestAnimationFrame(render); return; }
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { rafRef.current = requestAnimationFrame(render); return; }
+
+      // Read all data from refs
+      const lm = landmarksRef.current;
+      const gest = gestureRef.current;
+      const inter = interactionRef.current;
+      const conf = confidenceRef.current;
+      const handed = handednessRef.current;
+      const curPos = cursorPosRef.current;
+
+      const now = performance.now();
+      const dt = Math.min((now - lastTimeRef.current) / 1000, 0.05);
+      lastTimeRef.current = now;
+      timeRef.current += dt;
+      gestureTransitionRef.current = Math.min(1, gestureTransitionRef.current + dt * 5);
+
+      updateParticles(dt);
+      ctx.clearRect(0, 0, width, height);
+      ctx.save();
+      ctx.scale(width, height);
+
+      if (lm && lm.length > 0) {
+        if (showTrailsRef.current) updateTrails(lm);
+        if (showTrailsRef.current) drawTrails(ctx, trailsRef.current, gest);
+
+        for (let hi = 0; hi < lm.length; hi++) {
+          const hand = lm[hi];
+          const isMain = hi === 0;
+
+          drawBoundingBox(ctx, hand, conf, isMain);
+          drawHand(ctx, hand, gest, conf, timeRef.current, isMain);
+          drawJointGlows(ctx, hand, gest, conf, timeRef.current, isMain);
+
+          if (showParticlesRef.current && gest !== "none" && Math.random() > 0.82) {
+            const tip = FINGER_TIPS[Math.floor(Math.random() * 5)];
+            const landmark = lm[hi][tip!];
+            if (landmark) spawnParticles(landmark.x, landmark.y, 1, getGestureHue(gest));
+          }
+        }
+
+        if (gest === "point" && lm[0]?.[8] && lm[0]?.[5]) {
+          drawPointerBeam(ctx, lm[0][8]!, lm[0][5]!, conf);
+        }
+
+        if (showParticlesRef.current) drawParticles(ctx, particlesRef.current);
+
+        if (gest !== "none") {
+          const palm = lm[0]?.[9] || lm[0]?.[0];
+          if (palm) {
+            drawGestureHUD(ctx, palm.x, palm.y, gest, inter, conf, timeRef.current, gestureTransitionRef.current);
+          }
+        }
+
+        for (let hi = 0; hi < lm.length; hi++) {
+          drawConfidenceRing(ctx, lm[hi]!, conf, timeRef.current, hi === 0);
+        }
+
+        if (handed && lm[0]?.[0]) {
+          const w = lm[0][0]!;
+          ctx.fillStyle = hsl(C.purple[0], 40, 50, 0.5);
+          ctx.font = "10px monospace"; ctx.textAlign = "center";
+          ctx.fillText(handed, w.x, w.y + 0.04);
+        }
+      } else {
+        drawIdleState(ctx, timeRef.current);
+      }
+
+      if (showLabelsRef.current && lm?.[0]) drawLabels(ctx, lm[0]);
+
+      if (showCursorRef.current && curPos) {
+        drawSpatialCursor(ctx, curPos.x, curPos.y, gest, timeRef.current);
+      }
+
+      ctx.restore();
+      rafRef.current = requestAnimationFrame(render);
+    };
+
     rafRef.current = requestAnimationFrame(render);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [render]);
+    return () => { running = false; if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [width, height]); // only restart if canvas size changes
 
   return (
     <canvas
@@ -257,6 +284,9 @@ export default function HandVisualizer({
     />
   );
 }
+
+
+
 
 // ── Hand Drawing ──────────────────────────────────────────────────────────────
 

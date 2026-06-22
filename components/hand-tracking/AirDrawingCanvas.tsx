@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect, useCallback, useState } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   AirDrawingSystem,
   type Landmark,
@@ -100,118 +100,136 @@ export default function AirDrawingCanvas({
     prevGestureRef.current = gesture;
   }, [landmarks, gesture, isActive]);
 
-  // ── Canvas Render ────────────────────────────────────────────────────────
+  // ── Refs for stable RAF loop ──────────────────────────────────────────────
+  const landmarksRef = useRef(landmarks);
+  const gestureRefLocal = useRef(gesture);
+  const isActiveRef = useRef(isActive);
+  const brushColorRef = useRef(brushColor);
 
-  const render = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+  landmarksRef.current = landmarks;
+  gestureRefLocal.current = gesture;
+  isActiveRef.current = isActive;
+  brushColorRef.current = brushColor;
 
-    ctx.clearRect(0, 0, width, height);
-
-    // Background
-    ctx.fillStyle = "rgba(7,7,8,0.95)";
-    ctx.fillRect(0, 0, width, height);
-
-    // Subtle grid
-    ctx.strokeStyle = "rgba(139,92,246,0.04)";
-    ctx.lineWidth = 1;
-    for (let x2 = 0; x2 < width; x2 += 48) {
-      ctx.beginPath(); ctx.moveTo(x2, 0); ctx.lineTo(x2, height); ctx.stroke();
-    }
-    for (let y2 = 0; y2 < height; y2 += 48) {
-      ctx.beginPath(); ctx.moveTo(0, y2); ctx.lineTo(width, y2); ctx.stroke();
-    }
-
-    const sys = systemRef.current;
-    const allStrokes = sys.getAllStrokes();
-
-    // Draw strokes
-    for (const stroke of allStrokes) {
-      if (stroke.points.length < 2) continue;
-      const isCurrent = stroke === sys.getCurrentStroke();
-
-      // Glow pass
-      ctx.save();
-      ctx.filter = `blur(${stroke.size * 0.8}px)`;
-      ctx.strokeStyle = stroke.color;
-      ctx.lineWidth = stroke.size * 1.5;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.globalAlpha = isCurrent ? 0.35 : 0.2;
-      drawStrokePath(ctx, stroke.points, width, height);
-      ctx.restore();
-
-      // Core pass
-      ctx.save();
-      ctx.strokeStyle = stroke.color;
-      ctx.lineWidth = stroke.size;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      ctx.globalAlpha = isCurrent ? 1 : 0.88;
-      drawStrokePath(ctx, stroke.points, width, height);
-      ctx.restore();
-
-      // Highlight pass
-      ctx.save();
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = Math.max(1, stroke.size * 0.3);
-      ctx.lineCap = "round";
-      ctx.globalAlpha = isCurrent ? 0.4 : 0.18;
-      drawStrokePath(ctx, stroke.points, width, height);
-      ctx.restore();
-    }
-
-    // Draw index finger cursor
-    if (isActive && landmarks?.[0]?.[8]) {
-      const tip = landmarks[0][8]!;
-      const cx = tip.x * width;
-      const cy = tip.y * height;
-      const isDrawing = sys.isCurrentlyDrawing();
-
-      // Outer ring
-      ctx.beginPath();
-      ctx.arc(cx, cy, isDrawing ? 16 : 10, 0, Math.PI * 2);
-      ctx.strokeStyle = isDrawing ? brushColor : "rgba(255,255,255,0.3)";
-      ctx.lineWidth = isDrawing ? 2 : 1;
-      ctx.globalAlpha = 0.7;
-      ctx.stroke();
-
-      // Inner dot
-      ctx.beginPath();
-      ctx.arc(cx, cy, isDrawing ? 4 : 2, 0, Math.PI * 2);
-      ctx.fillStyle = isDrawing ? brushColor : "rgba(255,255,255,0.6)";
-      ctx.globalAlpha = 1;
-      ctx.fill();
-
-      // Glow
-      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 24);
-      grad.addColorStop(0, brushColor + "55");
-      grad.addColorStop(1, "transparent");
-      ctx.fillStyle = grad;
-      ctx.globalAlpha = isDrawing ? 0.8 : 0.3;
-      ctx.beginPath();
-      ctx.arc(cx, cy, 24, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-    }
-
-    // Hint text when empty
-    if (allStrokes.length === 0 && !isActive) {
-      ctx.fillStyle = "rgba(255,255,255,0.12)";
-      ctx.font = "bold 18px monospace";
-      ctx.textAlign = "center";
-      ctx.fillText("Activate the Air Draw tab to start drawing", width / 2, height / 2);
-    }
-
-    rafRef.current = requestAnimationFrame(render);
-  }, [landmarks, isActive, width, height, brushColor]);
+  // ── Canvas Render — stable RAF, reads refs ───────────────────────────────
 
   useEffect(() => {
+    let running = true;
+
+    const render = () => {
+      if (!running) return;
+      const canvas = canvasRef.current;
+      if (!canvas) { rafRef.current = requestAnimationFrame(render); return; }
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { rafRef.current = requestAnimationFrame(render); return; }
+
+      const active = isActiveRef.current;
+      const lm = landmarksRef.current;
+      const color = brushColorRef.current;
+
+      ctx.clearRect(0, 0, width, height);
+
+      // Background
+      ctx.fillStyle = "rgba(7,7,8,0.95)";
+      ctx.fillRect(0, 0, width, height);
+
+      // Subtle grid
+      ctx.strokeStyle = "rgba(139,92,246,0.04)";
+      ctx.lineWidth = 1;
+      for (let x2 = 0; x2 < width; x2 += 48) {
+        ctx.beginPath(); ctx.moveTo(x2, 0); ctx.lineTo(x2, height); ctx.stroke();
+      }
+      for (let y2 = 0; y2 < height; y2 += 48) {
+        ctx.beginPath(); ctx.moveTo(0, y2); ctx.lineTo(width, y2); ctx.stroke();
+      }
+
+      const sys = systemRef.current;
+      const allStrokes = sys.getAllStrokes();
+
+      // Draw strokes
+      for (const stroke of allStrokes) {
+        if (stroke.points.length < 2) continue;
+        const isCurrent = stroke === sys.getCurrentStroke();
+
+        // Glow pass
+        ctx.save();
+        ctx.filter = `blur(${stroke.size * 0.8}px)`;
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.size * 1.5;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.globalAlpha = isCurrent ? 0.35 : 0.2;
+        drawStrokePath(ctx, stroke.points, width, height);
+        ctx.restore();
+
+        // Core pass
+        ctx.save();
+        ctx.strokeStyle = stroke.color;
+        ctx.lineWidth = stroke.size;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        ctx.globalAlpha = isCurrent ? 1 : 0.88;
+        drawStrokePath(ctx, stroke.points, width, height);
+        ctx.restore();
+
+        // Highlight pass
+        ctx.save();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = Math.max(1, stroke.size * 0.3);
+        ctx.lineCap = "round";
+        ctx.globalAlpha = isCurrent ? 0.4 : 0.18;
+        drawStrokePath(ctx, stroke.points, width, height);
+        ctx.restore();
+      }
+
+      // Draw index finger cursor
+      if (active && lm?.[0]?.[8]) {
+        const tip = lm[0][8]!;
+        const cx = tip.x * width;
+        const cy = tip.y * height;
+        const isDrawing = sys.isCurrentlyDrawing();
+
+        // Outer ring
+        ctx.beginPath();
+        ctx.arc(cx, cy, isDrawing ? 16 : 10, 0, Math.PI * 2);
+        ctx.strokeStyle = isDrawing ? color : "rgba(255,255,255,0.3)";
+        ctx.lineWidth = isDrawing ? 2 : 1;
+        ctx.globalAlpha = 0.7;
+        ctx.stroke();
+
+        // Inner dot
+        ctx.beginPath();
+        ctx.arc(cx, cy, isDrawing ? 4 : 2, 0, Math.PI * 2);
+        ctx.fillStyle = isDrawing ? color : "rgba(255,255,255,0.6)";
+        ctx.globalAlpha = 1;
+        ctx.fill();
+
+        // Glow
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, 24);
+        grad.addColorStop(0, color + "55");
+        grad.addColorStop(1, "transparent");
+        ctx.fillStyle = grad;
+        ctx.globalAlpha = isDrawing ? 0.8 : 0.3;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 24, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+
+      // Hint text when empty
+      if (allStrokes.length === 0 && !active) {
+        ctx.fillStyle = "rgba(255,255,255,0.12)";
+        ctx.font = "bold 18px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText("Activate the Air Draw tab to start drawing", width / 2, height / 2);
+      }
+
+      rafRef.current = requestAnimationFrame(render);
+    };
+
     rafRef.current = requestAnimationFrame(render);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [render]);
+    return () => { running = false; if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, [width, height]);
 
   // ── Controls ─────────────────────────────────────────────────────────────
 
