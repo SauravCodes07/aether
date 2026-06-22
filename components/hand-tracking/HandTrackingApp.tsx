@@ -61,6 +61,7 @@ type MP = {
     createFromOptions: (filesetResolver: unknown, opts: {
       baseOptions: { modelAssetPath: string };
       numHands?: number;
+      runningMode?: "IMAGE" | "VIDEO";
     }) => Promise<HandLandmarkerInstance>;
   };
 };
@@ -213,6 +214,7 @@ export default function HandTrackingApp() {
     const model = await mp.HandLandmarker.createFromOptions(filesetResolver, {
       baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker.task" },
       numHands: 2,
+      runningMode: "VIDEO",
     });
     modelRef.current = model;
     log("MODEL_LOADED");
@@ -224,6 +226,7 @@ export default function HandTrackingApp() {
   useEffect(() => {
     if (cameraStatus !== "ONLINE") return;
     let frameCount = 0;
+    let hasLoggedReady = false;
     let lastFpsUpdate = performance.now();
 
     const loop = async () => {
@@ -232,13 +235,26 @@ export default function HandTrackingApp() {
         return;
       }
       if (!videoRef.current || videoRef.current.readyState < 2) {
+        if (videoRef.current && videoRef.current.readyState >= 1 && !hasLoggedReady) {
+           console.log("VIDEO_READY");
+           hasLoggedReady = true;
+        }
         rafRef.current = requestAnimationFrame(loop);
         return;
+      }
+
+      if (frameCount === 0) {
+        console.log("VIDEO_READY (readyState >= 2)");
       }
 
       const t0 = performance.now();
       try {
         const model = await loadModel();
+        
+        if (frameCount % 60 === 0) {
+          console.log("FRAME_RECEIVED", frameCount);
+        }
+
         const results = model.detectForVideo(videoRef.current, performance.now());
         setLatencyMs(Math.round(performance.now() - t0));
 
@@ -250,6 +266,9 @@ export default function HandTrackingApp() {
 
         const detected = results.handedness?.length ?? 0;
         if (detected > 0) {
+          if (frameCount % 60 === 0) {
+            console.log("LANDMARKS_DETECTED", detected, "hands");
+          }
           setHandedness(results.handedness![0]!.label || null);
           setHandsDetected(detected);
           setConfidence(Math.round((results.handedness![0]!.score || 0) * 100));
@@ -304,6 +323,11 @@ export default function HandTrackingApp() {
           const rawGesture = detectAllGestures(hands);
           const stateResult = stateMachineRef.current.update(rawGesture);
           const detectedGesture = stateResult.gesture;
+          
+          if (detectedGesture !== "none" && frameCount % 60 === 0) {
+             console.log("GESTURE_DETECTED", detectedGesture);
+          }
+
           const gestureInteraction = gestureToInteraction(detectedGesture);
           setGesture(detectedGesture);
           setInteraction(gestureInteraction);
