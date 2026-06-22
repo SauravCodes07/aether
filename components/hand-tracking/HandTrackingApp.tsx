@@ -619,14 +619,7 @@ export default function HandTrackingApp() {
         )}
       </div>
 
-      {/* Shared hidden video — always rendered, feeds all tabs */}
-      <video
-        ref={videoRef}
-        className={activeTab === "tracking" ? "hidden" : "hidden"}
-        playsInline
-        muted
-        aria-hidden
-      />
+
 
       {/* ── Air Draw Tab ─────────────────────────────────────────────────── */}
       {activeTab === "air-draw" && (
