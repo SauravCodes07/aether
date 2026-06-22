@@ -709,3 +709,216 @@ export class MotionTrail {
 
   clear(): void { this.trails = []; }
 }
+
+// ── Air Drawing System ───────────────────────────────────────────────────────
+
+export type BrushColor =
+  | "#22d3ee"  // cyan
+  | "#a78bfa"  // violet
+  | "#34d399"  // emerald
+  | "#fb923c"  // orange
+  | "#f472b6"  // pink
+  | "#facc15"  // yellow
+  | "#ffffff"; // white
+
+export type DrawPoint = { x: number; y: number; pressure: number };
+export type DrawStroke = {
+  id: string;
+  points: DrawPoint[];
+  color: BrushColor;
+  size: number;
+  timestamp: number;
+};
+
+export class AirDrawingSystem {
+  private strokes: DrawStroke[] = [];
+  private currentStroke: DrawStroke | null = null;
+  private undoStack: DrawStroke[][] = [];
+  private brushColor: BrushColor = "#22d3ee";
+  private brushSize = 4;
+  private isDrawing = false;
+  private minPointDistance = 0.005; // min distance between points to avoid jitter
+  private lastPoint: DrawPoint | null = null;
+
+  startStroke(x: number, y: number): void {
+    this.undoStack.push([...this.strokes]);
+    if (this.undoStack.length > 50) this.undoStack.shift();
+    this.currentStroke = {
+      id: `stroke-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      points: [{ x, y, pressure: 1 }],
+      color: this.brushColor,
+      size: this.brushSize,
+      timestamp: Date.now(),
+    };
+    this.isDrawing = true;
+    this.lastPoint = { x, y, pressure: 1 };
+  }
+
+  addPoint(x: number, y: number, pressure = 1): void {
+    if (!this.currentStroke || !this.isDrawing) return;
+    if (this.lastPoint) {
+      const dx = x - this.lastPoint.x;
+      const dy = y - this.lastPoint.y;
+      if (Math.sqrt(dx * dx + dy * dy) < this.minPointDistance) return;
+    }
+    this.currentStroke.points.push({ x, y, pressure });
+    this.lastPoint = { x, y, pressure };
+  }
+
+  endStroke(): void {
+    if (this.currentStroke && this.currentStroke.points.length > 1) {
+      this.strokes.push(this.currentStroke);
+    }
+    this.currentStroke = null;
+    this.isDrawing = false;
+    this.lastPoint = null;
+  }
+
+  cancelStroke(): void {
+    this.currentStroke = null;
+    this.isDrawing = false;
+    this.lastPoint = null;
+  }
+
+  undo(): void {
+    if (this.undoStack.length === 0) return;
+    this.strokes = this.undoStack.pop()!;
+    this.currentStroke = null;
+    this.isDrawing = false;
+  }
+
+  clear(): void {
+    this.undoStack.push([...this.strokes]);
+    if (this.undoStack.length > 50) this.undoStack.shift();
+    this.strokes = [];
+    this.currentStroke = null;
+    this.isDrawing = false;
+  }
+
+  setBrushColor(color: BrushColor): void { this.brushColor = color; }
+  setBrushSize(size: number): void { this.brushSize = Math.max(1, Math.min(20, size)); }
+  getBrushColor(): BrushColor { return this.brushColor; }
+  getBrushSize(): number { return this.brushSize; }
+  isCurrentlyDrawing(): boolean { return this.isDrawing; }
+
+  getStrokes(): DrawStroke[] { return this.strokes; }
+  getCurrentStroke(): DrawStroke | null { return this.currentStroke; }
+  getAllStrokes(): DrawStroke[] {
+    return this.currentStroke ? [...this.strokes, this.currentStroke] : [...this.strokes];
+  }
+
+  canUndo(): boolean { return this.undoStack.length > 0; }
+  strokeCount(): number { return this.strokes.length; }
+  reset(): void { this.strokes = []; this.currentStroke = null; this.undoStack = []; this.isDrawing = false; this.lastPoint = null; }
+}
+
+// ── Low-Light Detector ───────────────────────────────────────────────────────
+
+export type LightLevel = "good" | "dim" | "dark";
+
+export class LowLightDetector {
+  private canvas: HTMLCanvasElement;
+  private ctx: CanvasRenderingContext2D;
+  private lastCheck = 0;
+  private checkIntervalMs = 2000;
+  private currentLevel: LightLevel = "good";
+
+  constructor() {
+    this.canvas = document.createElement("canvas");
+    this.canvas.width = 64;
+    this.canvas.height = 36;
+    this.ctx = this.canvas.getContext("2d")!;
+  }
+
+  analyze(video: HTMLVideoElement): LightLevel {
+    const now = performance.now();
+    if (now - this.lastCheck < this.checkIntervalMs) return this.currentLevel;
+    this.lastCheck = now;
+    try {
+      this.ctx.drawImage(video, 0, 0, 64, 36);
+      const data = this.ctx.getImageData(0, 0, 64, 36).data;
+      let total = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        total += 0.299 * data[i]! + 0.587 * data[i + 1]! + 0.114 * data[i + 2]!;
+      }
+      const avg = total / (data.length / 4);
+      this.currentLevel = avg > 80 ? "good" : avg > 40 ? "dim" : "dark";
+    } catch { /* cors / readyState guard */ }
+    return this.currentLevel;
+  }
+
+  getLevel(): LightLevel { return this.currentLevel; }
+}
+
+// ── Tracking Loss Recovery ───────────────────────────────────────────────────
+
+export type TrackingState = "tracking" | "lost" | "recovering";
+
+export class TrackingLossRecovery {
+  private state: TrackingState = "lost";
+  private lostSince = 0;
+  private recoveryAttempts = 0;
+  private lastSeenTime = 0;
+  private lostThresholdMs: number;
+  private maxAttempts: number;
+  private onLost?: () => void;
+  private onRecovered?: () => void;
+
+  constructor(lostThresholdMs = 1500, maxAttempts = 3, callbacks?: { onLost?: () => void; onRecovered?: () => void }) {
+    this.lostThresholdMs = lostThresholdMs;
+    this.maxAttempts = maxAttempts;
+    this.onLost = callbacks?.onLost;
+    this.onRecovered = callbacks?.onRecovered;
+  }
+
+  update(handsDetected: number): TrackingState {
+    const now = performance.now();
+    if (handsDetected > 0) {
+      if (this.state !== "tracking") {
+        this.state = "tracking";
+        this.recoveryAttempts = 0;
+        this.onRecovered?.();
+      }
+      this.lastSeenTime = now;
+    } else {
+      if (this.state === "tracking") {
+        this.lostSince = now;
+        this.state = "recovering";
+      }
+      if (this.state === "recovering" && now - this.lostSince > this.lostThresholdMs) {
+        this.state = "lost";
+        this.recoveryAttempts++;
+        this.onLost?.();
+      }
+    }
+    return this.state;
+  }
+
+  getState(): TrackingState { return this.state; }
+  getRecoveryAttempts(): number { return this.recoveryAttempts; }
+  getLostDuration(): number { return this.state !== "tracking" ? performance.now() - this.lostSince : 0; }
+  needsRestart(): boolean { return this.state === "lost" && this.recoveryAttempts >= this.maxAttempts; }
+  reset(): void { this.state = "lost"; this.recoveryAttempts = 0; this.lostSince = 0; this.lastSeenTime = 0; }
+}
+
+// ── Spatial Cursor State ─────────────────────────────────────────────────────
+
+export type CursorDepth = { z: number; scale: number }; // scale: 1 = normal, <1 = far, >1 = close
+
+export function computeCursorDepth(palmZ: number): CursorDepth {
+  // MediaPipe z: negative = closer to camera. Map to scale factor.
+  const z = palmZ ?? 0;
+  const scale = Math.max(0.6, Math.min(1.6, 1 - z * 5));
+  return { z, scale };
+}
+
+export function lerpCursorPosition(
+  current: CursorPosition,
+  target: CursorPosition,
+  smoothing: number,
+): CursorPosition {
+  return {
+    x: current.x + (target.x - current.x) * (1 - smoothing),
+    y: current.y + (target.y - current.y) * (1 - smoothing),
+  };
+}
