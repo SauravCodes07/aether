@@ -165,7 +165,8 @@ export default function InteractionLab({ interactionState, gesture, isActive }: 
     prevCursorRef.current = { x: cx, y: cy };
   }, [interactionState, gesture, isActive, logEvent]);
 
-  // ── Canvas Render ────────────────────────────────────────────────────────
+  const interactionStateRef = useRef(interactionState);
+  interactionStateRef.current = interactionState;
 
   const render = useCallback(() => {
     const canvas = canvasRef.current;
@@ -333,9 +334,10 @@ export default function InteractionLab({ interactionState, gesture, isActive }: 
     ctx.restore();
 
     // ── Cursor Orb ──
-    const curX = interactionState.cursorX * W;
-    const curY = interactionState.cursorY * H;
-    const isInteracting = interactionState.isInteracting;
+    const currState = interactionStateRef.current;
+    const curX = currState.cursorX * W;
+    const curY = currState.cursorY * H;
+    const isInteracting = currState.isInteracting;
 
     ctx.restore(); // undo workspace scale
 
@@ -364,11 +366,18 @@ export default function InteractionLab({ interactionState, gesture, isActive }: 
     ctx.restore();
 
     rafRef.current = requestAnimationFrame(render);
-  }, [interactionState]);
+  }, []);
 
   useEffect(() => {
-    rafRef.current = requestAnimationFrame(render);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+    let running = true;
+    const loop = () => {
+      if (running) render();
+    };
+    rafRef.current = requestAnimationFrame(loop);
+    return () => {
+      running = false;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
   }, [render]);
 
   function handleReset() {

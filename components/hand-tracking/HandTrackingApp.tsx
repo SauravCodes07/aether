@@ -139,7 +139,10 @@ export default function HandTrackingApp() {
   const stabilityRef = useRef(new GestureStabilityFilter());
   const cursorRef = useRef(new SpatialCursor());
   const prevHandsRef = useRef<Hand[] | null>(null);
-  const smootherRef = useRef(new HandSmoother(21, 0.03, 0.08));
+  const smootherRefs = useRef<HandSmoother[]>([
+    new HandSmoother(21, 0.03, 0.08),
+    new HandSmoother(21, 0.03, 0.08)
+  ]);
   const autoCalibratorRef = useRef(new AutoCalibrator());
   const motionTrailRef = useRef(new MotionTrail());
   const lightDetectorRef = useRef<LowLightDetector | null>(null);
@@ -349,9 +352,12 @@ export default function HandTrackingApp() {
 
           // ── Process landmarks ──
           if (results.landmarks.length > 0) {
-            const smoothedHands = results.landmarks.map(lm =>
-              smootherRef.current.smooth(lm.map(p => ({ x: p.x, y: p.y, z: p.z })))
-            );
+            const smoothedHands = results.landmarks.map((lm, idx) => {
+              if (!smootherRefs.current[idx]) {
+                smootherRefs.current[idx] = new HandSmoother(21, 0.03, 0.08);
+              }
+              return smootherRefs.current[idx]!.smooth(lm.map(p => ({ x: p.x, y: p.y, z: p.z })));
+            });
             const calOffset = autoCalibratorRef.current.calibrate(smoothedHands[0]!);
             const hands: Hand[] = smoothedHands.map((lm, idx) => {
               const handCats = results.handedness[idx];
@@ -506,7 +512,7 @@ export default function HandTrackingApp() {
   function handleResetTracking() {
     stopCamera();
     cursorRef.current.reset();
-    smootherRef.current.reset();
+    smootherRefs.current.forEach(s => s.reset());
     autoCalibratorRef.current.reset();
     calibrationRef.current = { offsetX: 0, offsetY: 0, scaleX: 1, scaleY: 1 };
     prevHandsRef.current = null;
