@@ -43,15 +43,30 @@ import PermissionsFallback from "./PermissionsFallback";
 import AirDrawingCanvas from "./AirDrawingCanvas";
 import InteractionLab from "./InteractionLab";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Types — match actual @mediapipe/tasks-vision API ──────────────────────────
 
-type MPResult = {
-  landmarks?: Array<Array<{ x: number; y: number; z?: number }>>;
-  handedness?: Array<{ label?: string; score?: number }>;
+type MPCategory = {
+  score: number;
+  index: number;
+  categoryName: string;
+  displayName: string;
+};
+
+type MPNormalizedLandmark = {
+  x: number;
+  y: number;
+  z: number;
+};
+
+type MPHandLandmarkerResult = {
+  landmarks: MPNormalizedLandmark[][];
+  worldLandmarks: MPNormalizedLandmark[][];
+  handedness: MPCategory[][];
+  handednesses: MPCategory[][];  // deprecated alias
 };
 
 type HandLandmarkerInstance = {
-  detectForVideo: (video: HTMLVideoElement, timestamp: number) => MPResult;
+  detectForVideo: (video: HTMLVideoElement, timestamp: number) => MPHandLandmarkerResult;
   close?: () => void;
 };
 
@@ -59,9 +74,12 @@ type MP = {
   FilesetResolver: { forVisionTasks: (path: string) => Promise<unknown> };
   HandLandmarker: {
     createFromOptions: (filesetResolver: unknown, opts: {
-      baseOptions: { modelAssetPath: string };
+      baseOptions: { modelAssetPath: string; delegate?: string };
       numHands?: number;
       runningMode?: "IMAGE" | "VIDEO";
+      minHandDetectionConfidence?: number;
+      minHandPresenceConfidence?: number;
+      minTrackingConfidence?: number;
     }) => Promise<HandLandmarkerInstance>;
   };
 };
@@ -207,187 +225,238 @@ export default function HandTrackingApp() {
 
   async function loadModel(): Promise<HandLandmarkerInstance> {
     if (modelRef.current) return modelRef.current;
-    const mp = (await import("@mediapipe/tasks-vision")) as unknown as MP;
-    const filesetResolver = await mp.FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm",
-    );
-    const model = await mp.HandLandmarker.createFromOptions(filesetResolver, {
-      baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker.task" },
-      numHands: 2,
-      runningMode: "VIDEO",
-    });
-    modelRef.current = model;
-    log("MODEL_LOADED");
-    return model;
+    console.log("[AETHER] MODEL_LOADING...");
+    try {
+      const mp = (await import("@mediapipe/tasks-vision")) as unknown as MP;
+      const filesetResolver = await mp.FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/wasm",
+      );
+      const model = await mp.HandLandmarker.createFromOptions(filesetResolver, {
+        baseOptions: {
+          modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+          delegate: "GPU",
+        },
+        numHands: 2,
+        runningMode: "VIDEO",
+        minHandDetectionConfidence: 0.3,
+        minHandPresenceConfidence: 0.3,
+        minTrackingConfidence: 0.3,
+      });
+      modelRef.current = model;
+      console.log("[AETHER] MODEL_LOADED ✓");
+      return model;
+    } catch (err) {
+      console.error("[AETHER] MODEL_FAILED ✗", err);
+      throw err;
+    }
   }
 
   // ── Main Tracking Loop ────────────────────────────────────────────────────
 
   useEffect(() => {
     if (cameraStatus !== "ONLINE") return;
+    let cancelled = false;
     let frameCount = 0;
-    let hasLoggedReady = false;
     let lastFpsUpdate = performance.now();
+    let lastTimestamp = -1; // monotonic timestamp for MediaPipe
 
-    const loop = async () => {
-      if ((cameraStatus as CameraStatus) === "PAUSED") {
-        rafRef.current = requestAnimationFrame(loop);
-        return;
-      }
-      if (!videoRef.current || videoRef.current.readyState < 2) {
-        if (videoRef.current && videoRef.current.readyState >= 1 && !hasLoggedReady) {
-           console.log("VIDEO_READY");
-           hasLoggedReady = true;
-        }
-        rafRef.current = requestAnimationFrame(loop);
-        return;
-      }
+    async function startLoop() {
+      // Step 1: Wait for video to be truly ready
+      const video = videoRef.current;
+      if (!video) { console.error("[AETHER] NO_VIDEO_ELEMENT"); return; }
 
-      if (frameCount === 0) {
-        console.log("VIDEO_READY (readyState >= 2)");
+      // Wait until readyState >= 2
+      while (video.readyState < 2 && !cancelled) {
+        console.log(`[AETHER] VIDEO_WAITING readyState=${video.readyState}`);
+        await new Promise(r => setTimeout(r, 100));
       }
+      if (cancelled) return;
+      console.log(`[AETHER] VIDEO_READY ✓ readyState=${video.readyState} size=${video.videoWidth}x${video.videoHeight}`);
 
-      const t0 = performance.now();
+      // Step 2: Load model ONCE before loop starts
+      let model: HandLandmarkerInstance;
       try {
-        const model = await loadModel();
-        
-        if (frameCount % 60 === 0) {
-          console.log("FRAME_RECEIVED", frameCount);
+        model = await loadModel();
+      } catch {
+        console.error("[AETHER] CANNOT_START — model failed to load");
+        return;
+      }
+      if (cancelled) return;
+
+      console.log("[AETHER] TRACKING_LOOP_STARTING");
+
+      // Step 3: Synchronous loop — no awaits inside
+      const loop = () => {
+        if (cancelled) return;
+        if ((cameraStatus as CameraStatus) === "PAUSED") {
+          rafRef.current = requestAnimationFrame(loop);
+          return;
+        }
+        if (!video || video.readyState < 2) {
+          rafRef.current = requestAnimationFrame(loop);
+          return;
         }
 
-        const results = model.detectForVideo(videoRef.current, performance.now());
-        setLatencyMs(Math.round(performance.now() - t0));
+        const t0 = performance.now();
 
-        // Low-light detection
-        if (lightDetectorRef.current && videoRef.current.readyState >= 2) {
-          const level = lightDetectorRef.current.analyze(videoRef.current);
-          setLightLevel(level);
-        }
+        // Monotonic timestamp — MediaPipe throws if timestamp doesn't increase
+        const timestamp = Math.max(performance.now(), lastTimestamp + 1);
+        lastTimestamp = timestamp;
 
-        const detected = results.handedness?.length ?? 0;
-        if (detected > 0) {
-          if (frameCount % 60 === 0) {
-            console.log("LANDMARKS_DETECTED", detected, "hands");
+        try {
+          const results = model.detectForVideo(video, timestamp);
+
+          if (frameCount % 120 === 0) {
+            console.log(`[AETHER] FRAME_PROCESSED #${frameCount} landmarks=${results.landmarks.length} handedness=${results.handedness.length}`);
           }
-          setHandedness(results.handedness![0]!.label || null);
-          setHandsDetected(detected);
-          setConfidence(Math.round((results.handedness![0]!.score || 0) * 100));
-        } else {
-          setHandsDetected(0);
-          setHandedness(null);
-          setConfidence(0);
-        }
 
-        // Tracking recovery
-        if (recoveryRef.current) {
-          const tState = recoveryRef.current.update(detected);
-          setTrackingState(tState);
-          // Auto-restart if fully lost too many times
-          if (recoveryRef.current.needsRestart() && cameraStatus === "ONLINE") {
-            setAutoRestartCount(c => c + 1);
-            recoveryRef.current.reset();
-            // Trigger a soft restart after 2s
-            setTimeout(() => restartCamera(), 2000);
+          setLatencyMs(Math.round(performance.now() - t0));
+
+          // Low-light detection (every 60 frames to save CPU)
+          if (lightDetectorRef.current && frameCount % 60 === 0) {
+            try {
+              const level = lightDetectorRef.current.analyze(video);
+              setLightLevel(level);
+            } catch { /* ignore */ }
           }
-        }
 
-        if (results.landmarks?.length) {
-          const smoothedHands = results.landmarks.map(lm =>
-            smootherRef.current.smooth(lm.map(p => ({ x: p.x, y: p.y, z: p.z })))
-          );
-          const calOffset = autoCalibratorRef.current.calibrate(smoothedHands[0]!);
-          const hands: Hand[] = smoothedHands.map((lm, idx) => ({
-            landmarks: lm.map(p => {
-              const calX = (p.x - 0.5) * calibrationRef.current.scaleX + calOffset.offsetX + calibrationRef.current.offsetX;
-              const calY = (p.y - 0.5) * calibrationRef.current.scaleY + calOffset.offsetY + calibrationRef.current.offsetY;
-              return {
-                ...transformLandmark(
-                  { x: applyDeadZone(calX, deadZone) + 0.5, y: applyDeadZone(calY, deadZone) + 0.5, z: p.z },
-                  mirrorView,
-                ),
-              };
-            }),
-            handedness: results.handedness?.[idx]?.label,
-          })) satisfies Hand[];
+          // ── Process handedness (Category[][]) ──
+          const numHands = results.handedness.length;
+          if (numHands > 0) {
+            const firstHandCats = results.handedness[0];
+            const cat = firstHandCats && firstHandCats.length > 0 ? firstHandCats[0] : null;
+            const label = cat?.categoryName || cat?.displayName || null;
+            const score = cat?.score ?? 0;
 
-          // Edge recovery
-          for (const hand of hands) {
-            for (const lm of hand.landmarks) {
-              if (lm.x < 0.05) lm.x = 0.05 + (lm.x - 0.05) * 0.5;
-              if (lm.x > 0.95) lm.x = 0.95 + (lm.x - 0.95) * 0.5;
-              if (lm.y < 0.05) lm.y = 0.05 + (lm.y - 0.05) * 0.5;
-              if (lm.y > 0.95) lm.y = 0.95 + (lm.y - 0.95) * 0.5;
+            if (frameCount % 120 === 0) {
+              console.log(`[AETHER] LANDMARKS_DETECTED hands=${numHands} label=${label} confidence=${Math.round(score * 100)}%`);
             }
+
+            setHandedness(label);
+            setHandsDetected(numHands);
+            setConfidence(Math.round(score * 100));
+          } else {
+            setHandsDetected(0);
+            setHandedness(null);
+            setConfidence(0);
           }
 
-          const rawGesture = detectAllGestures(hands);
-          const stateResult = stateMachineRef.current.update(rawGesture);
-          const detectedGesture = stateResult.gesture;
-          
-          if (detectedGesture !== "none" && frameCount % 60 === 0) {
-             console.log("GESTURE_DETECTED", detectedGesture);
+          // Tracking recovery
+          if (recoveryRef.current) {
+            const tState = recoveryRef.current.update(numHands);
+            setTrackingState(tState);
           }
 
-          const gestureInteraction = gestureToInteraction(detectedGesture);
-          setGesture(detectedGesture);
-          setInteraction(gestureInteraction);
+          // ── Process landmarks ──
+          if (results.landmarks.length > 0) {
+            const smoothedHands = results.landmarks.map(lm =>
+              smootherRef.current.smooth(lm.map(p => ({ x: p.x, y: p.y, z: p.z })))
+            );
+            const calOffset = autoCalibratorRef.current.calibrate(smoothedHands[0]!);
+            const hands: Hand[] = smoothedHands.map((lm, idx) => {
+              const handCats = results.handedness[idx];
+              const handLabel = handCats && handCats.length > 0 ? (handCats[0]?.categoryName || undefined) : undefined;
+              return {
+                landmarks: lm.map(p => {
+                  const calX = (p.x - 0.5) * calibrationRef.current.scaleX + calOffset.offsetX + calibrationRef.current.offsetX;
+                  const calY = (p.y - 0.5) * calibrationRef.current.scaleY + calOffset.offsetY + calibrationRef.current.offsetY;
+                  return {
+                    ...transformLandmark(
+                      { x: applyDeadZone(calX, deadZone) + 0.5, y: applyDeadZone(calY, deadZone) + 0.5, z: p.z },
+                      mirrorView,
+                    ),
+                  };
+                }),
+                handedness: handLabel,
+              };
+            }) satisfies Hand[];
 
-          const isPinching = detectedGesture === "pinch";
-          const isGrabbing = detectedGesture === "grab";
+            // Edge recovery
+            for (const hand of hands) {
+              for (const lm of hand.landmarks) {
+                if (lm.x < 0.05) lm.x = 0.05 + (lm.x - 0.05) * 0.5;
+                if (lm.x > 0.95) lm.x = 0.95 + (lm.x - 0.95) * 0.5;
+                if (lm.y < 0.05) lm.y = 0.05 + (lm.y - 0.05) * 0.5;
+                if (lm.y > 0.95) lm.y = 0.95 + (lm.y - 0.95) * 0.5;
+              }
+            }
 
-          // Cursor update
-          if (hands[0]?.landmarks[9]) {
-            const palm = hands[0].landmarks[9]!;
+            const rawGesture = detectAllGestures(hands);
+            const stateResult = stateMachineRef.current.update(rawGesture);
+            const detectedGesture = stateResult.gesture;
+
+            if (detectedGesture !== "none" && frameCount % 120 === 0) {
+              console.log(`[AETHER] GESTURE_DETECTED: ${detectedGesture}`);
+            }
+
+            const gestureInteraction = gestureToInteraction(detectedGesture);
+            setGesture(detectedGesture);
+            setInteraction(gestureInteraction);
+
+            const isPinching = detectedGesture === "pinch";
+            const isGrabbing = detectedGesture === "grab";
+
+            // Cursor update
+            if (hands[0]?.landmarks[9]) {
+              const palm = hands[0].landmarks[9]!;
+              const curPos = cursorRef.current.getPosition();
+              const sx = exponentialSmooth(curPos.x, palm.x, smoothFactor);
+              const sy = exponentialSmooth(curPos.y, palm.y, smoothFactor);
+              cursorRef.current.setPosition(sx, sy);
+              cursorPosRef.current = { x: sx, y: sy };
+            }
+
+            if (hands[0]?.landmarks[8]) {
+              motionTrailRef.current.add(hands[0].landmarks[8]!.x, hands[0].landmarks[8]!.y);
+            }
+
+            setRawLandmarks(hands.map(h => h.landmarks));
+
             const curPos = cursorRef.current.getPosition();
-            const sx = exponentialSmooth(curPos.x, palm.x, smoothFactor);
-            const sy = exponentialSmooth(curPos.y, palm.y, smoothFactor);
-            cursorRef.current.setPosition(sx, sy);
-            cursorPosRef.current = { x: sx, y: sy };
+            const newState: InteractionState = {
+              gesture: detectedGesture,
+              interaction: gestureInteraction,
+              cursorX: curPos.x,
+              cursorY: curPos.y,
+              isPinching,
+              isGrabbing,
+              isInteracting: isPinching || isGrabbing,
+            };
+            interactionRef.current = newState;
+            setInteractionState(newState);
+            prevHandsRef.current = hands;
+          } else {
+            setGesture("none");
+            setInteraction("idle");
+            setRawLandmarks(null);
+            prevHandsRef.current = null;
+            setInteractionState(createDefaultInteractionState());
+            interactionRef.current = createDefaultInteractionState();
           }
-
-          if (hands[0]?.landmarks[8]) {
-            motionTrailRef.current.add(hands[0].landmarks[8]!.x, hands[0].landmarks[8]!.y);
+        } catch (err) {
+          if (frameCount % 120 === 0) {
+            console.error("[AETHER] FRAME_ERROR", err);
           }
-
-          setRawLandmarks(hands.map(h => h.landmarks));
-
-          const curPos = cursorRef.current.getPosition();
-          const newState: InteractionState = {
-            gesture: detectedGesture,
-            interaction: gestureInteraction,
-            cursorX: curPos.x,
-            cursorY: curPos.y,
-            isPinching,
-            isGrabbing,
-            isInteracting: isPinching || isGrabbing,
-          };
-          interactionRef.current = newState;
-          setInteractionState(newState);
-          prevHandsRef.current = hands;
-        } else {
-          setGesture("none");
-          setInteraction("idle");
-          setRawLandmarks(null);
-          prevHandsRef.current = null;
-          setInteractionState(createDefaultInteractionState());
-          interactionRef.current = createDefaultInteractionState();
         }
-      } catch (err) {
-        console.error(err);
-      }
 
-      frameCount++;
-      const now = performance.now();
-      if (now - lastFpsUpdate > 1000) {
-        setFps(Math.round((frameCount * 1000) / (now - lastFpsUpdate)));
-        frameCount = 0;
-        lastFpsUpdate = now;
-      }
+        frameCount++;
+        const now = performance.now();
+        if (now - lastFpsUpdate > 1000) {
+          setFps(Math.round((frameCount * 1000) / (now - lastFpsUpdate)));
+          frameCount = 0;
+          lastFpsUpdate = now;
+        }
+        rafRef.current = requestAnimationFrame(loop);
+      };
+
       rafRef.current = requestAnimationFrame(loop);
-    };
+    }
 
-    rafRef.current = requestAnimationFrame(loop);
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+    startLoop();
+    return () => {
+      cancelled = true;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
   }, [cameraStatus, deadZone, smoothFactor, mirrorView, detectAllGestures]);
 
   // ── Camera Controls ───────────────────────────────────────────────────────
